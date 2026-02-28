@@ -18,6 +18,58 @@ class SCO_Utils {
         return wp_parse_args(get_option('sco_settings', []), $defaults);
     }
 
+    public static function get_copy() {
+        $copy = [
+            'completion_messages' => [
+                'score_low' => 'Guter Start. Morgen wiederholen – Konsistenz schlägt Perfektion.',
+                'score_mid' => 'Sauber. Du wirst stabiler – behalte dieses Pattern bei.',
+                'score_high' => 'Stark. Genau so fühlt sich Fortschritt an – weiter so.',
+            ],
+            'premium_tooltips' => [
+                'locked_skill' => 'Mit Premium schaltest du diesen Pfad frei – inkl. Level, Verlauf & Bonus-Drills.',
+                'locked_library' => 'Premium: Vollzugriff auf die Bibliothek + tägliche Script-Variationen.',
+                'locked_missions' => 'Premium: Mehr Missionen, mehr Struktur – und schnellerer Fortschritt.',
+                'locked_history' => 'Premium: Fortschritts-Verlauf & Vergleiche über Wochen/Monate.',
+                'free_limit_reached' => 'Für heute ist das Free-Limit erreicht. Morgen geht’s weiter – oder schalte Premium frei.',
+            ],
+            'cta' => [
+                'upgrade_primary' => 'Premium freischalten',
+                'upgrade_secondary' => 'Mehr Infos',
+                'dashboard_nudge' => 'Du bist dran: Heute 6 Minuten Training – und ein Level näher.',
+                'streak_save' => 'Streak sichern: 1 Drill – fertig.',
+                'level_up' => 'Noch {n} Drills bis Level {level}.',
+            ],
+            'onboarding' => [
+                'title' => 'Wähle deinen Fokus',
+                'subtitle' => 'Du bekommst passende Drills und eine sinnvolle Rotation.',
+                'options' => [
+                    ['key' => 'werbung', 'label' => 'Werbung'],
+                    ['key' => 'imagefilm', 'label' => 'Imagefilm / Produktvideo'],
+                    ['key' => 'erklaervideo', 'label' => 'Erklärvideo'],
+                    ['key' => 'elearning', 'label' => 'E-Learning'],
+                    ['key' => 'telefon', 'label' => 'Telefonansagen'],
+                    ['key' => 'hoerbuch', 'label' => 'Hörbuch'],
+                    ['key' => 'doku', 'label' => 'Dokumentarfilm'],
+                ],
+                'continue' => 'Weiter',
+                'skip' => 'Später',
+            ],
+        ];
+
+        return apply_filters('sco_microcopy', $copy);
+    }
+
+    public static function copy($group, $key = null, $default = '') {
+        $copy = self::get_copy();
+        $value = $copy[$group] ?? [];
+
+        if ($key === null) {
+            return $value;
+        }
+
+        return $value[$key] ?? $default;
+    }
+
     public static function today() {
         return wp_date('Y-m-d');
     }
@@ -33,12 +85,12 @@ class SCO_Utils {
         $max = 0;
 
         foreach ($answers as $answer) {
-            if (!empty($answer['type']) && $answer['type'] === 'scale') {
+            if (!empty($answer['type']) && in_array($answer['type'], ['scale', 'scale_1_5'], true)) {
                 $value = max(1, min(5, (int) ($answer['value'] ?? 1)));
                 $sum += $value;
                 $max += 5;
             }
-            if (!empty($answer['type']) && $answer['type'] === 'checkbox') {
+            if (!empty($answer['type']) && in_array($answer['type'], ['checkbox', 'checkbox_multi'], true)) {
                 $value = !empty($answer['value']) ? 1 : 0;
                 $sum += $value;
                 $max += 1;
@@ -54,16 +106,13 @@ class SCO_Utils {
 
     public static function feedback_from_score($score) {
         if ($score >= 85) {
-            return 'Stark! Du klingst kontrolliert, präsent und professionell.';
+            return self::copy('completion_messages', 'score_high', 'Stark!');
         }
         if ($score >= 65) {
-            return 'Sehr gut. Mit etwas mehr Präzision in Pausen und Betonung knackt du das nächste Level.';
-        }
-        if ($score >= 45) {
-            return 'Guter Schritt. Wiederhole den Drill langsam und fokussiere Artikulation + Klarheit.';
+            return self::copy('completion_messages', 'score_mid', 'Sehr gut.');
         }
 
-        return 'Dranbleiben! Nimm dir heute 3 Minuten extra für Warmup und Atmung.';
+        return self::copy('completion_messages', 'score_low', 'Guter Start.');
     }
 
     public static function xp_for_completion($base_xp, $score) {

@@ -21,6 +21,8 @@
     }, 20);
   };
 
+  const lockBadge = (msg) => `<div class="sco-lock">🔒 ${msg}</div>`;
+
   const renderDashboard = async () => {
     const root = document.querySelector('[data-sco-module="dashboard"]');
     if (!root) return;
@@ -28,6 +30,7 @@
     root.querySelector('[data-sco-daily-card]').innerHTML = `
       <h3>${data.drill.title}</h3>
       <p>${data.drill.description}</p>
+      <p><strong>${data.cta.dashboard_nudge}</strong></p>
       <div class="sco-progress"><div style="width:${Math.min((data.progress.weekly_count / data.progress.weekly_goal) * 100, 100)}%"></div></div>
       <small>Wochenziel: ${data.progress.weekly_count}/${data.progress.weekly_goal}</small>
     `;
@@ -65,7 +68,7 @@
       <h3>${data.drill.title}</h3>
       <p>${data.drill.description}</p>
       <div class="sco-timer"><strong data-sco-timer>00:00</strong> <button class="sco-btn" data-sco-start>Start</button> <button class="sco-btn" data-sco-pause>Pause</button> <button class="sco-btn" data-sco-reset>Reset</button></div>
-      <div class="sco-questions">${questions.map((q, i) => q.type === 'scale' ? `<label>${q.label}<input type="range" min="1" max="5" value="3" data-q="${i}" data-type="scale"></label>` : `<label><input type="checkbox" data-q="${i}" data-type="checkbox"> ${q.label}</label>`).join('')}</div>
+      <div class="sco-questions">${questions.map((q, i) => q.type.includes('scale') ? `<label>${q.label}<input type="range" min="1" max="5" value="3" data-q="${i}" data-type="scale_1_5"></label>` : `<label><input type="checkbox" data-q="${i}" data-type="checkbox_multi"> ${q.label}</label>`).join('')}</div>
       <button class="sco-btn sco-btn-primary" data-sco-complete>Abschließen</button>
       <div data-sco-result></div>
     `;
@@ -78,7 +81,7 @@
       }
       const answers = Array.from(wrap.querySelectorAll('[data-q]')).map((el) => ({
         type: el.dataset.type,
-        value: el.dataset.type === 'scale' ? parseInt(el.value, 10) : el.checked,
+        value: el.dataset.type.includes('scale') ? parseInt(el.value, 10) : el.checked,
       }));
       const result = await api('complete-drill', { method: 'POST', body: JSON.stringify({ drill_id: data.drill.id, answers }) });
       wrap.querySelector('[data-sco-result]').innerHTML = `<p><strong>Score ${result.score}/100</strong> · +${result.xp} XP</p><p>${result.feedback}</p>`;
@@ -86,28 +89,41 @@
   };
 
   const renderSkilltree = async () => {
-    const root = document.querySelector('[data-sco-module="skilltree"] [data-sco-skilltree]');
+    const module = document.querySelector('[data-sco-module="skilltree"]');
+    const root = module?.querySelector('[data-sco-skilltree]');
     if (!root) return;
     const rows = await api('skilltree');
-    root.innerHTML = rows.map((row) => `<div class="sco-card ${row.locked ? 'sco-locked' : ''}"><h3>${row.skill}</h3><p>Level ${row.level} · ${row.xp} XP</p>${row.locked ? '<small>Premium erforderlich</small>' : ''}</div>`).join('');
+    const tooltip = module.dataset.lockedSkill || 'Premium erforderlich';
+    root.innerHTML = rows.map((row) => `<div class="sco-card ${row.locked ? 'sco-locked' : ''}" title="${tooltip}"><h3>${row.skill}</h3><p>Level ${row.level} · ${row.xp} XP</p>${row.locked ? lockBadge(tooltip) : ''}</div>`).join('');
   };
 
   const renderMissions = async () => {
-    const root = document.querySelector('[data-sco-module="missions"] [data-sco-missions]');
+    const module = document.querySelector('[data-sco-module="missions"]');
+    const root = module?.querySelector('[data-sco-missions]');
     if (!root) return;
-    const missions = await api('missions');
-    root.innerHTML = missions.map((m) => `<div class="sco-card ${m.locked ? 'sco-locked' : ''}"><h3>${m.title}</h3><p>${m.description}</p><small>${m.duration_days} Tage</small></div>`).join('');
+    const response = await api('missions');
+    const missions = response.items || [];
+    const tooltip = module.dataset.lockedMissions || response.premium_tooltip || 'Premium erforderlich';
+    root.innerHTML = missions.map((m) => `<div class="sco-card ${m.locked ? 'sco-locked' : ''}" title="${tooltip}"><h3>${m.title}</h3><p>${m.description}</p><small>${m.duration_days} Tage</small>${m.locked ? lockBadge(tooltip) : ''}</div>`).join('');
   };
 
   const renderLibrary = async () => {
     const module = document.querySelector('[data-sco-module="library"]');
     if (!module) return;
     const target = module.querySelector('[data-sco-library]');
+    const notice = module.querySelector('[data-sco-library-notice]');
+
     const load = async () => {
       const data = await api('library');
       target.innerHTML = data.items.map((item) => `<div class="sco-card"><h3>${item.title}</h3><p>${item.content}</p></div>`).join('');
+      if (!data.premium && data.items.length >= data.limit) {
+        const href = data.checkout_url || module.dataset.upgradeUrl || '#';
+        notice.innerHTML = `<p>${data.copy.free_limit_reached}</p><a class="sco-btn sco-btn-primary" href="${href}">${data.copy.upgrade_primary}</a>`;
+      } else {
+        notice.innerHTML = '';
+      }
     };
-    module.querySelector('[data-sco-random]').addEventListener('click', load);
+    module.querySelector('[data-sco-random]')?.addEventListener('click', load);
     load();
   };
 
