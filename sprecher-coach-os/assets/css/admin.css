@@ -1,2 +1,6 @@
-.sco-admin .sco-admin-form{display:grid;gap:10px;max-width:760px;background:#fff;padding:16px;border-radius:12px;margin-bottom:18px}
-.sco-admin table{background:#fff}
+.sco-admin{color:#e9f1fb}
+.sco-admin .sco-admin-form{display:grid;gap:10px;max-width:860px;background:#151d26;padding:16px;border-radius:12px;margin-bottom:18px;border:1px solid #263447}
+.sco-admin .sco-admin-form input,.sco-admin .sco-admin-form textarea{background:#0f141a;color:#e9f1fb;border:1px solid #263447;border-radius:8px;padding:8px}
+.sco-admin .widefat{background:#151d26;color:#e9f1fb;border-color:#263447}
+.sco-admin .widefat th,.sco-admin .widefat td{color:#e9f1fb}
+.sco-admin .button.button-primary{background:#1a93ee;border-color:#1a93ee}

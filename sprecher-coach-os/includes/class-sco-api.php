@@ -50,7 +50,9 @@ class SCO_API {
             'drill' => $drill,
             'progress' => $progress,
             'premium' => $premium,
-            'teaser' => 'Mit Premium erhältst du alle Skill-Pfade, Missionen ohne Limit und volle Bibliothek.',
+            'teaser' => SCO_Utils::copy('premium_tooltips', 'locked_skill'),
+            'cta' => SCO_Utils::copy('cta'),
+            'premium_tooltips' => SCO_Utils::copy('premium_tooltips'),
         ]);
     }
 
@@ -227,7 +229,10 @@ class SCO_API {
             }
         }
 
-        return rest_ensure_response($missions);
+        return rest_ensure_response([
+            'items' => $missions,
+            'premium_tooltip' => SCO_Utils::copy('premium_tooltips', 'locked_missions'),
+        ]);
     }
 
     public function mission_step_complete(WP_REST_Request $request) {
@@ -295,12 +300,22 @@ class SCO_API {
             $where[] = 'is_premium=0';
         }
 
-        $sql = 'SELECT * FROM ' . SCO_DB::table('library') . ' WHERE ' . implode(' AND ', $where) . ' ORDER BY RAND() LIMIT %d';
+        $sql = 'SELECT * FROM ' . SCO_DB::table('library') . ' WHERE ' . implode(' AND ', $where) . ' ORDER BY id DESC LIMIT %d';
         $args[] = $limit;
 
         $query = $wpdb->prepare($sql, ...$args);
         $items = $wpdb->get_results($query, ARRAY_A);
 
-        return rest_ensure_response(['items' => $items, 'premium' => $premium, 'limit' => $limit]);
+        return rest_ensure_response([
+            'items' => $items,
+            'premium' => $premium,
+            'limit' => $limit,
+            'checkout_url' => sco_checkout_url(),
+            'copy' => [
+                'locked_library' => SCO_Utils::copy('premium_tooltips', 'locked_library'),
+                'free_limit_reached' => SCO_Utils::copy('premium_tooltips', 'free_limit_reached'),
+                'upgrade_primary' => SCO_Utils::copy('cta', 'upgrade_primary'),
+            ],
+        ]);
     }
 }
