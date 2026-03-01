@@ -1,3 +1,13 @@
+@font-face {
+  font-family: 'Rubik';
+  src: local('Rubik');
+  font-display: swap;
+}
+
+.sprecher-coach-os-wrapper {
+  font-family: 'Rubik', sans-serif;
+}
+
 .sco-app,
 #sco-root.sco-app {
   --sco-primary: #1a93ee;
@@ -20,7 +30,7 @@
   --sco-gap-4: 24px;
   --sco-gap-5: 32px;
   --sco-transition: all .35s cubic-bezier(0.16, 1, 0.3, 1);
-  font-family: Rubik, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Rubik', sans-serif;
   color: var(--sco-text);
   background: transparent;
   padding: clamp(18px, 3vw, 36px);
@@ -48,17 +58,19 @@ body.sco-drawer-open { overflow: hidden; }
 }
 
 .sco-app ul li {
-  position: relative;
-  padding-left: 28px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
 }
 
+.sco-modal__canvas ul li::before,
+.sco-drawer__body ul li::before,
 .sco-app ul li::before {
   content: '';
-  position: absolute;
-  left: 0;
-  top: 0.5em;
-  width: 16px;
-  height: 16px;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
   background-color: #1a93ee;
   -webkit-mask-image: url('https://dev.pascal-krell.de/wp-content/uploads/2025/08/check-mark-icon.svg');
   mask-image: url('https://dev.pascal-krell.de/wp-content/uploads/2025/08/check-mark-icon.svg');
@@ -68,7 +80,6 @@ body.sco-drawer-open { overflow: hidden; }
   mask-position: center;
   -webkit-mask-size: contain;
   mask-size: contain;
-  transform: translateY(-50%);
 }
 
 .sco-card {
@@ -542,10 +553,6 @@ body.sco-drawer-open { overflow: hidden; }
 }
 
 /* Preserve special card backgrounds */
-.sco-app .sco-topbar,
-.sco-app .sco-topbar:hover {
-  display: none !important;
-}
 .sco-app .sco-login-required:hover {
   background: var(--sco-surface) !important;
 }
@@ -727,7 +734,7 @@ body.sco-drawer-open { overflow: hidden; }
 }
 
 .sco-modal__title {
-  display: grid;
+  display: grid !important;
   gap: 2px;
 }
 
@@ -829,7 +836,12 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-modal__canvas .sco-grid,
 .sco-modal__body .sco-grid {
   width: 100%;
-  max-width: 100%;
+  max-width: none;
+}
+
+.sco-quick-actions,
+.sco-quick-actions:hover {
+  display: none !important;
 }
 
 .sco-modal__canvas .sco-grid-2,

@@ -1,6 +1,6 @@
 <?php if (!defined('ABSPATH')) { exit; } ?>
 <?php $test_plan = sanitize_key((string) get_user_meta(get_current_user_id(), 'sco_test_plan', true)); ?>
-<div class="sco-modal-overlay" id="scoCoachOverlay" hidden>
+<div class="sco-modal-overlay sprecher-coach-os-wrapper" id="scoCoachOverlay" hidden>
   <div class="sco-modal" role="dialog" aria-modal="true" aria-label="Sprecher Coach">
     <div class="sco-modal__head">
       <div class="sco-modal__title">
