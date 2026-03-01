@@ -1,11 +1,12 @@
 (() => {
-  const root = document.querySelector('.sco-app');
-  if (!root || !root.querySelector('.sco-shell')) return;
-
   const labels = scoData?.labelMaps || { skills: {}, categories: {} };
   const MISSION_CONTEXT_KEY = 'sco_mission_context';
   const MISSION_RUN_STATE_KEY = 'sco_mission_run_state';
+  const ACTIVE_TAB_KEY = 'sco_active_tab';
 
+  const initCoachApp = (root) => {
+    if (!root || root.dataset.scoAppInitialized === '1' || !root.querySelector('.sco-shell')) return;
+    root.dataset.scoAppInitialized = '1';
   const api = async (path, options = {}) => {
     const response = await fetch(`${scoData.restUrl}${path}`, {
       headers: { 'Content-Type': 'application/json', 'X-WP-Nonce': scoData.nonce },
@@ -128,6 +129,7 @@
       setActiveToolPanel(savedTool);
     }
     window.location.hash = tab;
+    window.localStorage.setItem(ACTIVE_TAB_KEY, tab);
     window.localStorage.setItem('scoActiveTab', tab);
   };
 
@@ -154,7 +156,7 @@
   const initTabs = () => {
     root.querySelectorAll('[data-tab]').forEach((button) => button.addEventListener('click', () => setTab(button.dataset.tab)));
     bindSwitchTabs(root);
-    const initial = (window.location.hash || '').replace('#', '') || window.localStorage.getItem('scoActiveTab') || 'today';
+    const initial = (window.location.hash || '').replace('#', '') || window.localStorage.getItem(ACTIVE_TAB_KEY) || window.localStorage.getItem('scoActiveTab') || 'today';
     setTab(initial);
   };
 
@@ -714,5 +716,109 @@
     renderMissionContextBanner();
   };
 
-  init();
+
+    init();
+  };
+
+  const initCoachAppsInScope = (scope = document) => {
+    scope.querySelectorAll('.sco-app').forEach((node) => initCoachApp(node));
+  };
+
+  window.SCOInitApp = initCoachAppsInScope;
+
+  const focusableSelector = 'a[href], area[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+  const createModalController = (launcher) => {
+    const overlay = launcher.querySelector('#scoCoachOverlay');
+    const mount = launcher.querySelector('#scoCoachAppMount');
+    const closeBtn = launcher.querySelector('.sco-modal__close');
+    const openBtn = launcher.querySelector('[data-sco-launcher-btn]');
+    if (!overlay || !mount || !openBtn) return;
+
+    let lastActiveElement = null;
+    let appLoaded = false;
+
+    const getFocusable = () => Array.from(overlay.querySelectorAll(focusableSelector)).filter((el) => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
+
+    const persistModalState = () => {
+      const activeTab = overlay.querySelector('[data-tab].is-active')?.dataset.tab;
+      const activeTool = overlay.querySelector('[data-tool-tab].is-active')?.dataset.toolTab;
+      if (activeTab) {
+        window.localStorage.setItem(ACTIVE_TAB_KEY, activeTab);
+        window.localStorage.setItem('scoActiveTab', activeTab);
+      }
+      if (activeTool) window.localStorage.setItem('sco_active_tool', activeTool);
+    };
+
+    const trapFocus = (event) => {
+      if (event.key !== 'Tab') return;
+      const nodes = getFocusable();
+      if (!nodes.length) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    const onEscape = (event) => {
+      if (event.key === 'Escape') closeCoachModal();
+    };
+
+    const ensureAppLoaded = async () => {
+      if (appLoaded) return;
+      const response = await fetch(`${scoData.restUrl}app-html`, {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: { 'X-WP-Nonce': scoData.nonce },
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.message || 'Coach konnte nicht geladen werden.');
+      mount.innerHTML = payload?.html || '<p class="sco-muted">Coach konnte nicht geladen werden.</p>';
+      appLoaded = true;
+      initCoachAppsInScope(mount);
+    };
+
+    const openCoachModal = async () => {
+      lastActiveElement = document.activeElement;
+      overlay.hidden = false;
+      document.body.classList.add('sco-modal-open');
+      document.body.style.overflow = 'hidden';
+      closeBtn?.focus();
+      try {
+        await ensureAppLoaded();
+      } catch (error) {
+        mount.innerHTML = `<p class="sco-muted">${error.message || 'Coach konnte nicht geladen werden.'}</p>`;
+      }
+      document.addEventListener('keydown', trapFocus);
+      document.addEventListener('keydown', onEscape);
+    };
+
+    const closeCoachModal = () => {
+      persistModalState();
+      overlay.hidden = true;
+      document.body.classList.remove('sco-modal-open');
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', trapFocus);
+      document.removeEventListener('keydown', onEscape);
+      if (lastActiveElement && typeof lastActiveElement.focus === 'function') lastActiveElement.focus();
+    };
+
+    openBtn.addEventListener('click', openCoachModal);
+    closeBtn?.addEventListener('click', closeCoachModal);
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) closeCoachModal();
+    });
+
+    if (launcher.dataset.autoOpen === '1') {
+      window.setTimeout(() => openCoachModal(), 60);
+    }
+  };
+
+  initCoachAppsInScope(document);
+  document.querySelectorAll('[data-sco-launcher]').forEach((launcher) => createModalController(launcher));
 })();
