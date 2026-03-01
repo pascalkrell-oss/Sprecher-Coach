@@ -149,6 +149,18 @@ class SCO_Utils {
         return self::copy('completion_messages', 'score_low', 'Guter Start.');
     }
 
+
+    public static function insight_text($key) {
+        $map = [
+            'low_checks' => 'Mehrere Self-Checks waren niedrig – plane morgen ein kurzes Warmup vor dem Drill.',
+            'consistency' => 'Konstanz stark: Du hast diese Woche bereits mindestens 3 Trainings abgeschlossen.',
+            'quality' => 'Qualität hoch: Dein durchschnittlicher Drill-Score liegt über 80%.',
+            'rhythm' => 'Halte den Rhythmus: Ein täglicher 6-Minuten-Drill stabilisiert Stimme und Timing.',
+        ];
+
+        return $map[$key] ?? $map['rhythm'];
+    }
+
     public static function xp_for_completion($base_xp, $score) {
         $bonus = (int) floor($score / 10);
         return (int) $base_xp + $bonus;

@@ -24,6 +24,8 @@ class SCO_API {
         register_rest_route('sco/v1', '/library/add', array_merge(['methods' => 'POST', 'callback' => [$this, 'library_add']], $auth));
         register_rest_route('sco/v1', '/notes', array_merge(['methods' => 'GET', 'callback' => [$this, 'get_notes']], $auth));
         register_rest_route('sco/v1', '/notes', array_merge(['methods' => 'POST', 'callback' => [$this, 'save_note']], $auth));
+        register_rest_route('sco/v1', '/notes/save', array_merge(['methods' => 'POST', 'callback' => [$this, 'save_note']], $auth));
+        register_rest_route('sco/v1', '/notes/recent', array_merge(['methods' => 'GET', 'callback' => [$this, 'get_notes_recent']], $auth));
         register_rest_route('sco/v1', '/reset', array_merge(['methods' => 'POST', 'callback' => [$this, 'reset_coach']], $auth));
         register_rest_route('sco/v1', '/app-html', [
             'methods' => 'GET',
@@ -111,12 +113,18 @@ class SCO_API {
         return rest_ensure_response(['items' => $this->get_recent_notes($user_id, 7)]);
     }
 
+    public function get_notes_recent(WP_REST_Request $request) {
+        $user_id = get_current_user_id();
+        $days = max(1, min(30, (int) $request->get_param('days')));
+        return rest_ensure_response(['items' => $this->get_recent_notes($user_id, $days)]);
+    }
+
     public function save_note(WP_REST_Request $request) {
         $user_id = get_current_user_id();
         $drill_id = (int) $request->get_param('drill_id');
         $today = sanitize_text_field((string) $request->get_param('date')) ?: SCO_Utils::today();
-        $better = sanitize_textarea_field((string) $request->get_param('better_today'));
-        $focus = sanitize_textarea_field((string) $request->get_param('focus_tomorrow'));
+        $better = sanitize_textarea_field((string) ($request->get_param('better') ?: $request->get_param('better_today')));
+        $focus = sanitize_textarea_field((string) ($request->get_param('focus') ?: $request->get_param('focus_tomorrow')));
 
         if ($better === '' && $focus === '') {
             return new WP_REST_Response(['message' => __('Bitte mindestens ein Notizfeld ausfüllen.', 'sprecher-coach-os')], 400);
@@ -131,8 +139,8 @@ class SCO_API {
         $all_notes[$note_key] = [
             'date' => $today,
             'drill_id' => $drill_id,
-            'better_today' => $better,
-            'focus_tomorrow' => $focus,
+            'better' => $better,
+            'focus' => $focus,
             'updated_at' => current_time('mysql'),
         ];
 
@@ -790,16 +798,16 @@ class SCO_API {
         }
 
         if ($check_count > 0 && ($low_checks / $check_count) > 0.35) {
-            $insights[] = 'Mehrere Self-Checks waren niedrig – plane morgen ein kurzes Warmup vor dem Drill.';
+            $insights[] = SCO_Utils::insight_text('low_checks');
         }
         if (count($rows) >= 3) {
-            $insights[] = 'Konstanz stark: Du hast diese Woche bereits mindestens 3 Trainings abgeschlossen.';
+            $insights[] = SCO_Utils::insight_text('consistency');
         }
         if (!empty($rows) && ($score_sum / count($rows)) >= 80) {
-            $insights[] = 'Qualität hoch: Dein durchschnittlicher Drill-Score liegt über 80%.';
+            $insights[] = SCO_Utils::insight_text('quality');
         }
         while (count($insights) < 3) {
-            $insights[] = 'Halte den Rhythmus: Ein täglicher 6-Minuten-Drill stabilisiert Stimme und Timing.';
+            $insights[] = SCO_Utils::insight_text('rhythm');
         }
 
         $top_skill = $wpdb->get_row($wpdb->prepare('SELECT usp.skill_key, usp.xp FROM ' . SCO_DB::table('user_skill_progress') . ' usp WHERE usp.user_id=%d ORDER BY usp.xp DESC LIMIT 1', $user_id), ARRAY_A);

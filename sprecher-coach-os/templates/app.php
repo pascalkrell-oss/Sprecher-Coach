@@ -70,6 +70,7 @@
           <article class="sco-card sco-hero" data-sco-today-card></article>
           <div class="sco-grid sco-grid-2">
             <article class="sco-card" data-sco-next-step></article>
+            <article class="sco-card" data-sco-plan-card></article>
             <article class="sco-card">
               <div class="sco-card-header"><h3><?php echo esc_html__('Dein Wochenziel', 'sprecher-coach-os'); ?></h3></div>
               <div class="sco-progress"><div data-sco-weekly-progress></div></div>
@@ -204,12 +205,16 @@
       <div class="sco-drawer__foot" data-sco-drawer-foot></div>
     </aside>
 
-    <div class="sco-command-palette" data-sco-command-palette hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Command Palette">
-      <div class="sco-command-palette__surface">
-        <label class="screen-reader-text" for="sco-command-input"><?php echo esc_html__('Befehl suchen', 'sprecher-coach-os'); ?></label>
-        <input id="sco-command-input" class="sco-input" type="search" data-sco-command-input placeholder="Befehl eingeben …" autocomplete="off">
-        <ul class="sco-command-palette__list" data-sco-command-results role="listbox"></ul>
+    <div class="sco-cmdk" data-sco-cmdk hidden aria-hidden="true">
+      <div class="sco-cmdk__panel" role="dialog" aria-modal="true" aria-label="Schnellzugriff">
+        <div class="sco-cmdk__head">
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <input class="sco-cmdk__input" data-sco-command-input type="search" placeholder="Befehl suchen…" autocomplete="off">
+          <button class="sco-icon-btn sco-cmdk__close" type="button" aria-label="Schließen"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="sco-cmdk__list" data-sco-command-results role="listbox"></div>
       </div>
+      <div class="sco-cmdk__backdrop"></div>
     </div>
   <?php endif; ?>
 </div>
