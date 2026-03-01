@@ -547,19 +547,24 @@
             const isDone = completed.includes(day);
             const canComplete = wasMissionStepRun(mission.id, day);
             const tasks = (step.tasks || []).map((task) => `<li>${esc(task)}</li>`).join('');
-            return `<div class="sco-card sco-mission-step-card" style="padding:16px;margin-bottom:12px;">
-              <div class="sco-mission-step-head"><p><strong>Tag ${day}</strong></p><span class="sco-pill sco-pill-neutral">~${Number(step.estimated_minutes || 0)} Min</span></div>
-              <p><strong>${esc(step.title)}</strong></p>
-              <p class="sco-muted"><strong>Deine Aufgabe</strong></p>
+            return `<section class="sco-card sco-mission-step-card">
+              <div class="sco-mission-step-head">
+                <h4 class="sco-mission-step-day">Tag ${day}</h4>
+                <span class="sco-mission-time-badge">~${Number(step.estimated_minutes || 0)} Min</span>
+              </div>
+              <p class="sco-mission-step-title"><strong>${esc(step.title)}</strong></p>
+              <p class="sco-muted sco-mission-task-label"><strong>Deine Aufgabe</strong></p>
               <ul class="sco-mission-task-list">${tasks || '<li>Keine Aufgaben hinterlegt.</li>'}</ul>
               ${step.script_text ? `<button class="sco-btn" type="button" data-toggle-script="${mission.id}-${day}">Text anzeigen</button><div class="sco-mission-script" data-script-body="${mission.id}-${day}" hidden><p>${esc(step.script_text)}</p><button class="sco-btn" type="button" data-copy-script="${mission.id}-${day}" data-copy-value="${esc(step.script_text)}">Text kopieren</button></div>` : ''}
-              <div class="sco-actions">
-                <button class="sco-btn sco-btn-primary" type="button" data-run-step='${JSON.stringify({ mission_id: mission.id, step_day: day, mission_title: mission.title, step_title: step.title, skill_key: step.drill_skill_key || mission.skill_key || 'werbung', category_key: step.drill_category_key || '', recommended_drill_id: Number(step.recommended_drill_id || 0) }).replace(/'/g, '&apos;')}'><i class="fa-solid fa-play"></i> Jetzt ausführen</button>
-                <button class="sco-btn" type="button" data-sco-switch-tab="daily">Zum Daily Drill</button>
-                <button class="sco-btn ${isDone ? '' : 'sco-btn-primary'}" type="button" data-complete-mission="${mission.id}" data-step-day="${day}" ${isDone || !canComplete ? 'disabled' : ''}>${isDone ? 'Erledigt' : 'Als erledigt markieren'}</button>
+              <div class="sco-mission-step-actions">
+                ${!isDone && !canComplete ? '<small class="sco-muted sco-mission-step-hint">Erst ausführen</small>' : ''}
+                <div class="sco-actions sco-actions--stack">
+                  <button class="sco-btn" type="button" data-run-step='${JSON.stringify({ mission_id: mission.id, step_day: day, mission_title: mission.title, step_title: step.title, skill_key: step.drill_skill_key || mission.skill_key || 'werbung', category_key: step.drill_category_key || '', recommended_drill_id: Number(step.recommended_drill_id || 0) }).replace(/'/g, '&apos;')}'><i class="fa-solid fa-play"></i> Jetzt ausführen</button>
+                  <button class="sco-btn sco-btn-brand" type="button" data-sco-switch-tab="daily">Zum Daily Drill</button>
+                  <button class="sco-btn ${isDone ? '' : 'sco-btn-primary'}" type="button" data-complete-mission="${mission.id}" data-step-day="${day}" ${isDone || !canComplete ? 'disabled' : ''}>${isDone ? 'Erledigt' : 'Als erledigt markieren'}</button>
+                </div>
               </div>
-              ${!isDone && !canComplete ? '<small class="sco-muted">Erst ausführen</small>' : ''}
-            </div>`;
+            </section>`;
           }).join(''),
         });
 
