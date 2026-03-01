@@ -33,6 +33,7 @@ class SCO_Shortcodes {
             'registerUrl' => wp_registration_url(),
             'myAccountUrl' => home_url('/my-account/'),
             'hasRegistration' => (bool) get_option('users_can_register'),
+            'labelMaps' => SCO_Utils::label_maps(),
         ]);
     }
 

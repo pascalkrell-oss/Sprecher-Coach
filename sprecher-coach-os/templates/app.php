@@ -33,12 +33,12 @@
           <h3><?php echo esc_html__('Navigation', 'sprecher-coach-os'); ?></h3>
         </div>
         <nav class="sco-nav-list" aria-label="Sprecher Coach Navigation">
-          <button type="button" class="is-active" data-tab="today"><?php echo esc_html__('Heute', 'sprecher-coach-os'); ?></button>
-          <button type="button" data-tab="daily"><?php echo esc_html__('Daily Drill', 'sprecher-coach-os'); ?></button>
-          <button type="button" data-tab="skilltree"><?php echo esc_html__('Skilltree', 'sprecher-coach-os'); ?></button>
-          <button type="button" data-tab="missions"><?php echo esc_html__('Missionen', 'sprecher-coach-os'); ?></button>
-          <button type="button" data-tab="library"><?php echo esc_html__('Bibliothek', 'sprecher-coach-os'); ?></button>
-          <button type="button" data-tab="progress"><?php echo esc_html__('Fortschritt', 'sprecher-coach-os'); ?></button>
+          <button type="button" class="is-active" data-tab="today"><i class="fa-solid fa-house" aria-hidden="true"></i><span><?php echo esc_html__('Heute', 'sprecher-coach-os'); ?></span></button>
+          <button type="button" data-tab="daily"><i class="fa-solid fa-dumbbell" aria-hidden="true"></i><span><?php echo esc_html__('Daily Drill', 'sprecher-coach-os'); ?></span></button>
+          <button type="button" data-tab="skilltree"><i class="fa-solid fa-diagram-project" aria-hidden="true"></i><span><?php echo esc_html__('Skilltree', 'sprecher-coach-os'); ?></span></button>
+          <button type="button" data-tab="missions"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i><span><?php echo esc_html__('Missionen', 'sprecher-coach-os'); ?></span></button>
+          <button type="button" data-tab="library"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span><?php echo esc_html__('Bibliothek', 'sprecher-coach-os'); ?></span></button>
+          <button type="button" data-tab="progress"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span><?php echo esc_html__('Fortschritt', 'sprecher-coach-os'); ?></span></button>
         </nav>
       </aside>
 
@@ -73,9 +73,47 @@
 
         <section class="sco-tab-panel" data-panel="library">
           <article class="sco-card">
-            <div class="sco-search-wrap">
-              <input type="search" class="sco-input" data-sco-library-search placeholder="<?php echo esc_attr__('Bibliothek durchsuchen …', 'sprecher-coach-os'); ?>">
-              <button class="sco-btn" type="button" data-sco-library-refresh><?php echo esc_html__('Neu laden', 'sprecher-coach-os'); ?></button>
+            <div class="sco-library-categories" data-sco-library-categories>
+              <button class="sco-library-category is-active" type="button" data-library-category="warmup">
+                <span class="sco-library-category__icon"><i class="fa-solid fa-sun" aria-hidden="true"></i></span>
+                <span>
+                  <strong>Warmups</strong>
+                  <small>Stimme aktivieren in 2–4 Minuten</small>
+                </span>
+                <em>30+</em>
+              </button>
+              <button class="sco-library-category" type="button" data-library-category="tongue_twister">
+                <span class="sco-library-category__icon"><i class="fa-solid fa-comments" aria-hidden="true"></i></span>
+                <span>
+                  <strong>Zungenbrecher</strong>
+                  <small>Präzision, Tempo, Artikulation</small>
+                </span>
+                <em>24+</em>
+              </button>
+              <button class="sco-library-category" type="button" data-library-category="script">
+                <span class="sco-library-category__icon"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span>
+                <span>
+                  <strong>Skripte</strong>
+                  <small>Genre-Textvorlagen für Takes</small>
+                </span>
+                <em>50+</em>
+              </button>
+              <button class="sco-library-category" type="button" data-library-category="business">
+                <span class="sco-library-category__icon"><i class="fa-solid fa-briefcase" aria-hidden="true"></i></span>
+                <span>
+                  <strong>Business</strong>
+                  <small>Mails, Pitches und Kundenkommunikation</small>
+                </span>
+                <em>18+</em>
+              </button>
+              <button class="sco-library-category" type="button" data-library-category="random">
+                <span class="sco-library-category__icon"><i class="fa-solid fa-dice" aria-hidden="true"></i></span>
+                <span>
+                  <strong>Zufällig</strong>
+                  <small>Premium Mix aus allen Kategorien</small>
+                </span>
+                <em>Pro</em>
+              </button>
             </div>
           </article>
           <article class="sco-card" data-sco-library-notice></article>
@@ -106,5 +144,18 @@
       <button type="button" data-tab="library"><?php echo esc_html__('Library', 'sprecher-coach-os'); ?></button>
       <button type="button" data-tab="progress"><?php echo esc_html__('Stats', 'sprecher-coach-os'); ?></button>
     </nav>
+
+    <div class="sco-overlay" hidden></div>
+    <aside class="sco-drawer" aria-hidden="true" role="dialog" aria-modal="true">
+      <div class="sco-drawer__head">
+        <div class="sco-drawer__title">
+          <span class="sco-drawer__icon" aria-hidden="true"></span>
+          <h3 data-sco-drawer-title><?php echo esc_html__('Details', 'sprecher-coach-os'); ?></h3>
+        </div>
+        <button class="sco-icon-btn sco-drawer__close" type="button" aria-label="Schließen"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="sco-drawer__body" data-sco-drawer-body></div>
+      <div class="sco-drawer__foot" data-sco-drawer-foot></div>
+    </aside>
   <?php endif; ?>
 </div>
