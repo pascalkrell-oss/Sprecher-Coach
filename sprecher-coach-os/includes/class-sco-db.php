@@ -17,6 +17,8 @@ class SCO_DB {
             'user_skill_progress' => 'sco_user_skill_progress',
             'user_completions' => 'sco_user_completions',
             'user_mission_progress' => 'sco_user_mission_progress',
+            'user_mission_steps' => 'sco_user_mission_steps',
+            'user_library_opens' => 'sco_user_library_opens',
         ];
 
         return $wpdb->prefix . $map[$key];
@@ -135,6 +137,29 @@ class SCO_DB {
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id),
             UNIQUE KEY user_mission (user_id, mission_id)
+        ) $charset_collate";
+
+        $sql[] = "CREATE TABLE " . self::table('user_mission_steps') . " (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id BIGINT UNSIGNED NOT NULL,
+            mission_id BIGINT UNSIGNED NOT NULL,
+            step_day SMALLINT UNSIGNED NOT NULL,
+            completed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY user_id (user_id),
+            KEY mission_id (mission_id),
+            UNIQUE KEY user_mission_step (user_id, mission_id, step_day)
+        ) $charset_collate";
+
+        $sql[] = "CREATE TABLE " . self::table('user_library_opens') . " (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id BIGINT UNSIGNED NOT NULL,
+            open_date DATE NOT NULL,
+            open_count SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY user_open_date (user_id, open_date),
+            KEY user_id (user_id)
         ) $charset_collate";
 
         foreach ($sql as $query) {
