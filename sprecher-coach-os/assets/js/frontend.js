@@ -585,8 +585,22 @@
         <label>Länge<select name="length"><option value="10">10s</option><option value="20">20s</option><option value="30" selected>30s</option><option value="45">45s</option><option value="60">60s</option></select></label>
         <label>Zielgruppe<input name="audience" type="text" placeholder="z.B. B2B, Tech"></label>
         <label>Produkt/Topic<input name="topic" type="text" required placeholder="z.B. Kaffee-Abo"></label>
-        <button class="sco-btn sco-btn-primary sco-tool-generate-btn" type="submit">Text generieren</button>
+        <div><span class="sco-muted">Stil-Parameter</span><div class="sco-toggle-tiles" data-sco-style-tiles>
+          <button type="button" class="sco-toggle-tile" data-style="Kurz&knackig" aria-pressed="false">Kurz&knackig</button>
+          <button type="button" class="sco-toggle-tile" data-style="Warm&weich" aria-pressed="false">Warm&weich</button>
+          <button type="button" class="sco-toggle-tile" data-style="Understatement" aria-pressed="false">Understatement</button>
+          <button type="button" class="sco-toggle-tile" data-style="CTA-stark" aria-pressed="false">CTA-stark</button>
+          <button type="button" class="sco-toggle-tile" data-style="Didaktisch" aria-pressed="false">Didaktisch</button>
+        </div></div>
+        <button class="sco-btn sco-btn-primary sco-gen-btn" type="submit"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Text generieren</button>
       </form><div data-sco-generator-output></div>`;
+      gen.querySelectorAll('[data-sco-style-tiles] [data-style]').forEach((tile) => {
+        tile.addEventListener('click', () => {
+          const active = tile.classList.toggle('is-active');
+          tile.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+      });
+
       gen.querySelector('[data-sco-generator-form]').addEventListener('submit', (event) => {
         event.preventDefault();
         const data = Object.fromEntries(new FormData(event.currentTarget).entries());
@@ -599,7 +613,10 @@
           if (l <= 45) return 110;
           return 140;
         })();
-        const phrasePool = lines.map((line) => line.replaceAll('{topic}', data.topic).replaceAll('{audience}', data.audience || 'deine Zielgruppe').replaceAll('{hook}', data.tone));
+        const styles = Array.from(gen.querySelectorAll('[data-sco-style-tiles] [data-style].is-active')).map((node) => node.dataset.style);
+        const seed = `${scoData?.userId || 0}|${new Date().toISOString().slice(0, 10)}|${data.genre}|${data.tone}|${data.length}|${data.topic}|${data.audience}|${styles.join(',')}`;
+        const offset = Math.abs(seed.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % lines.length;
+        const phrasePool = lines.map((line, idx) => lines[(idx + offset) % lines.length]).map((line) => line.replaceAll('{topic}', data.topic).replaceAll('{audience}', data.audience || 'deine Zielgruppe').replaceAll('{hook}', data.tone));
         const words = [];
         let idx = 0;
         while (words.length < targetWords) {
@@ -607,12 +624,12 @@
           idx += 1;
         }
         const textOut = words.slice(0, targetWords).join(' ');
-        const regie = [`Tempo: ${data.tone === 'dynamisch' ? 'zackig' : 'mittel'}`, `Pausen: ${(data.genre === 'hoerbuch' || data.genre === 'doku') ? 'deutlich setzen' : 'kurz und rhythmisch'}`, 'Smile: natürlich', `Betonungsfokus: ${data.topic}`];
-        const music = data.genre === 'werbung' ? 'Dezenter Corporate Pop, 95–110 BPM.' : 'Leichtes Ambient-Bett, 85–100 BPM.';
-        state.generatedTool = { text: textOut, regie, genre: data.genre };
-        gen.querySelector('[data-sco-generator-output]').innerHTML = `<div class="sco-tool-output"><h4>Regie</h4><ul>${regie.map((r)=>`<li>${esc(r)}</li>`).join('')}</ul><h4>Musikvorschlag</h4><p>${esc(music)}</p><h4>Text</h4><p>${esc(textOut)}</p><div class="sco-actions"><button type="button" class="sco-btn" data-copy-gen-text>Copy Text</button><button type="button" class="sco-btn" data-copy-gen-regie>Copy Regie</button><button type="button" class="sco-btn ${state.premium ? '' : 'is-disabled'}" ${state.premium ? '' : 'disabled'} data-save-gen-script title="Nur Premium">In Bibliothek speichern</button></div></div>`;
-        gen.querySelector('[data-copy-gen-text]')?.addEventListener('click', async ()=>{ await navigator.clipboard.writeText(textOut); toast('Text kopiert.');});
-        gen.querySelector('[data-copy-gen-regie]')?.addEventListener('click', async ()=>{ await navigator.clipboard.writeText(regie.join('\n')); toast('Regie kopiert.');});
+        const regie = [`Tempo: ${data.tone === 'dynamisch' ? 'zackig und aktiv' : data.tone === 'ruhig' ? 'ruhig und getragen' : 'mittel und klar'}`, `Pausen: ${(data.genre === 'hoerbuch' || data.genre === 'doku') ? 'deutlich setzen' : 'kurz und rhythmisch'}`, `Smile: ${styles.includes('Warm&weich') ? 'hörbar weich' : 'natürlich dosiert'}`, `Keyword Fokus: ${data.topic}`, `Haltung: ${styles.includes('Understatement') ? 'minimalistisch, souverän' : styles.includes('CTA-stark') ? 'klar, zielgerichtet' : 'offen und präsent'}`];
+        const music = data.genre === 'werbung' ? 'Dezenter Corporate Pop, 95–110 BPM, klarer Schlussakzent.' : data.genre === 'hoerbuch' ? 'Sanftes Ambient-Pad ohne dominante Drums, 70–85 BPM.' : 'Leichtes Ambient-Bett, 85–100 BPM, zurückhaltend im Vocal-Bereich.';
+        state.generatedTool = { text: textOut, regie, genre: data.genre, tone: data.tone, styles };
+        gen.querySelector('[data-sco-generator-output]').innerHTML = `<div class="sco-tool-output"><h4>Regie</h4><ul>${regie.map((r)=>`<li>${esc(r)}</li>`).join('')}</ul><h4>Musikvorschlag</h4><p>${esc(music)}</p><h4>Text</h4><p>${esc(textOut)}</p><div class="sco-actions"><button type="button" class="sco-btn" data-copy-gen-text>Text kopieren</button><button type="button" class="sco-btn" data-copy-gen-regie>Regie kopieren</button><button type="button" class="sco-btn ${state.premium ? '' : 'is-disabled'}" ${state.premium ? '' : 'disabled'} data-save-gen-script title="Nur Premium">In Bibliothek speichern</button></div></div>`;
+        gen.querySelector('[data-copy-gen-text]')?.addEventListener('click', async ()=>{ await navigator.clipboard.writeText(textOut); toast('Kopiert!');});
+        gen.querySelector('[data-copy-gen-regie]')?.addEventListener('click', async ()=>{ await navigator.clipboard.writeText(regie.join('\n')); toast('Kopiert!');});
         gen.querySelector('[data-save-gen-script]')?.addEventListener('click', async ()=>{
           if (!state.premium) return;
           await api('library/add', { method: 'POST', body: JSON.stringify({ type: 'script', skill_key: data.genre, title: `Demo Script ${new Date().toLocaleDateString('de-DE')}`, content: `Regie:\n- ${regie.join('\n- ')}\n\nText:\n${textOut}` }) });
@@ -633,7 +650,7 @@
       const mirror = tele.querySelector('[data-sco-tp-mirror]');
       const focus = tele.querySelector('[data-sco-tp-focus]');
       const focusBand = tele.querySelector('.sco-teleprompter-focus');
-      const settingsKey = `sco_tp_${scoData?.userId || '0'}`;
+      const settingsKey = "sco_tp_settings";
       try { const saved = JSON.parse(localStorage.getItem(settingsKey) || '{}'); [speed.value,font.value,line.value]=[saved.speed||130,saved.font||32,saved.line||1.5]; mirror.checked=!!saved.mirror; focus.checked=!!saved.focus; } catch(e){}
       const sync = () => {
         content.textContent = textArea.value || 'Teleprompter bereit.';

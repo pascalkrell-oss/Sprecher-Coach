@@ -153,10 +153,10 @@
               <button type="button" class="sco-btn" role="tab" aria-selected="false" data-tool-tab="teleprompter"><i class="fa-solid fa-align-center" aria-hidden="true"></i><span><?php echo esc_html__('Teleprompter', 'sprecher-coach-os'); ?></span></button>
             </div>
           </article>
-          <section data-tool-panel="demo" class="sco-tool-panel is-active">
+          <section data-tool-panel="demo" class="sco-tools-panel is-active">
             <article class="sco-card" data-sco-tool-generator></article>
           </section>
-          <section data-tool-panel="teleprompter" class="sco-tool-panel">
+          <section data-tool-panel="teleprompter" class="sco-tools-panel">
             <article class="sco-card" data-sco-tool-teleprompter></article>
           </section>
         </section>
