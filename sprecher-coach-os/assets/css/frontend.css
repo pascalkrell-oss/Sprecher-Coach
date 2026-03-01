@@ -48,14 +48,6 @@ body.sco-drawer-open { overflow: hidden; }
   transition: var(--sco-transition);
 }
 
-.sco-card:hover,
-.sco-library-category:hover,
-.sco-toggle-tile:hover {
-  border-color: inherit;
-  box-shadow: inherit;
-  background: inherit;
-}
-
 .sco-card-header { margin-bottom: var(--sco-gap-4); padding-bottom: var(--sco-gap-3); border-bottom: 1px solid var(--sco-border); }
 .sco-topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sco-gap-4); background: linear-gradient(180deg, #ffffff 0%, #fafdff 100%); }
 .sco-kicker { margin: 0 0 var(--sco-gap-1); color: var(--sco-muted); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; }
@@ -70,7 +62,6 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-nav-list { display: grid; gap: var(--sco-gap-1); }
 .sco-nav-list button { width: 100%; text-align: left; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 10px 14px; border: 1px solid transparent; border-left: 3px solid transparent; border-radius: 12px; background: transparent; color: rgba(255, 255, 255, 0.65); font-size: 14px; font-weight: 500; cursor: pointer; transition: var(--sco-transition); }
 .sco-nav-list button i { font-size: 14px; width: 16px; color: rgba(255, 255, 255, 0.65); }
-.sco-nav-list button:hover { background: rgba(255, 255, 255, 0.06); color: rgba(255, 255, 255, 0.92); }
 .sco-nav-list button.is-active { color: rgba(255, 255, 255, 0.92); border-left-color: var(--sco-primary); background: rgba(26, 147, 238, 0.18); border-color: rgba(255, 255, 255, 0.1); }
 .sco-nav-list button.is-active i { color: var(--sco-primary); }
 
@@ -85,7 +76,6 @@ body.sco-drawer-open { overflow: hidden; }
 
 .sco-btn { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: var(--sco-pill); border: 1px solid var(--sco-border); background: var(--sco-surface); color: var(--sco-text); text-decoration: none; padding: 9px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: var(--sco-transition); }
 .sco-btn-primary { color: #fff; border-color: var(--sco-primary); background: var(--sco-primary); box-shadow: 0 2px 6px rgba(26, 147, 238, 0.28); }
-.sco-btn-primary:hover { border-color: var(--sco-primary-hover); background: var(--sco-primary-hover); box-shadow: 0 4px 10px rgba(0, 102, 179, 0.24); }
 .sco-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .sco-app button:focus-visible, .sco-app input:focus-visible, .sco-app a:focus-visible { outline: 2px solid rgba(26, 147, 238, 0.95); outline-offset: 2px; }
@@ -132,7 +122,6 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-drawer__foot { padding: 16px 24px 20px; border-top: 1px solid var(--sco-border); display: none; gap: 10px; background: #fff; border-radius: 0 0 20px 20px; }
 .sco-drawer__foot.has-content { display: flex; flex-wrap: wrap; }
 .sco-icon-btn { width: 36px; height: 36px; border-radius: 12px; border: 1px solid var(--sco-border); background: #fff; color: var(--sco-muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: var(--sco-transition); }
-.sco-icon-btn:hover { color: var(--sco-text); border-color: rgba(26, 147, 238, 0.45); }
 
 .sco-mobile-tabs { display: none; position: sticky; bottom: 10px; margin-top: var(--sco-gap-4); z-index: 25; padding: var(--sco-gap-1); border-radius: var(--sco-pill); border: 1px solid var(--sco-border); background: rgba(255, 255, 255, 0.95); box-shadow: var(--sco-shadow-2); backdrop-filter: blur(10px); }
 .sco-mobile-tabs button { flex: 1; min-height: 38px; border: 1px solid transparent; border-radius: var(--sco-pill); background: transparent; color: var(--sco-muted); font-size: 13px; font-weight: 600; cursor: pointer; }
@@ -242,27 +231,12 @@ body.sco-drawer-open { overflow: hidden; }
 }
 
 
-.sco-btn:hover,
-.sco-btn-primary:hover {
-  color: #fff;
-}
-
-.sco-btn:not(.sco-btn-primary):hover {
-  background: #0f172a;
-  border-color: #0f172a;
-}
-
 .sco-btn-danger {
   background: #b42318;
   border-color: #b42318;
   color: #fff;
 }
 
-.sco-btn-danger:hover {
-  background: #912018;
-  border-color: #912018;
-  color: #fff;
-}
 
 .sco-admin-testmode {
   display: flex;
@@ -297,6 +271,49 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-teleprompter-content { white-space: pre-wrap; padding: 28px; }
 .sco-teleprompter-focus { position: absolute; left: 0; right: 0; top: 40%; height: 20%; border-top: 1px solid rgba(255,255,255,.4); border-bottom: 1px solid rgba(255,255,255,.4); pointer-events: none; }
 
+.sco-tool-panel { display: none; }
+.sco-tool-panel.is-active { display: block; }
+
+.sco-tool-generate-btn {
+  min-height: 52px;
+  height: 52px;
+  width: 100%;
+  border-radius: 999px;
+  padding: 0 28px;
+  font-weight: 700;
+}
+
 @media (max-width: 860px) {
   .sco-tool-form, .sco-tool-controls, .sco-admin-testmode { grid-template-columns: 1fr; display: grid; }
+}
+
+
+/* === SCO: Disable all hover visual effects (hard override) === */
+.sco-app .sco-card:hover,
+.sco-app .sco-panel:hover,
+.sco-app .sco-kpi:hover,
+.sco-app .sco-tile:hover,
+.sco-app .sco-category-card:hover,
+.sco-app .sco-library-item:hover,
+.sco-app .sco-nav a:hover,
+.sco-app .sco-nav button:hover,
+.sco-app .sco-btn:hover,
+.sco-app a:hover,
+.sco-app button:hover {
+  background: inherit !important;
+  border-color: inherit !important;
+  box-shadow: inherit !important;
+  color: inherit !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+.sco-app button:hover {
+  color: #fff !important;
+}
+
+.sco-app *:focus-visible {
+  outline: 2px solid var(--sco-primary);
+  outline-offset: 2px;
+  border-radius: 8px;
 }

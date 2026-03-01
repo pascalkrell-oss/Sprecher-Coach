@@ -146,8 +146,19 @@
         </section>
 
         <section class="sco-tab-panel" data-panel="tools">
-          <article class="sco-card" data-sco-tool-generator></article>
-          <article class="sco-card" data-sco-tool-teleprompter></article>
+          <article class="sco-card">
+            <div class="sco-card-header"><h3><?php echo esc_html__('Tools', 'sprecher-coach-os'); ?></h3></div>
+            <div class="sco-segmented" role="tablist" aria-label="Tools" data-sco-tools-tabs>
+              <button type="button" class="sco-btn is-active" role="tab" aria-selected="true" data-tool-tab="demo"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i><span><?php echo esc_html__('Demo Text Generator', 'sprecher-coach-os'); ?></span></button>
+              <button type="button" class="sco-btn" role="tab" aria-selected="false" data-tool-tab="teleprompter"><i class="fa-solid fa-align-center" aria-hidden="true"></i><span><?php echo esc_html__('Teleprompter', 'sprecher-coach-os'); ?></span></button>
+            </div>
+          </article>
+          <section data-tool-panel="demo" class="sco-tool-panel is-active">
+            <article class="sco-card" data-sco-tool-generator></article>
+          </section>
+          <section data-tool-panel="teleprompter" class="sco-tool-panel">
+            <article class="sco-card" data-sco-tool-teleprompter></article>
+          </section>
         </section>
       </main>
 

@@ -123,8 +123,23 @@
   const setTab = (tab) => {
     root.querySelectorAll('[data-tab]').forEach((button) => button.classList.toggle('is-active', button.dataset.tab === tab));
     root.querySelectorAll('[data-panel]').forEach((panel) => panel.classList.toggle('is-active', panel.dataset.panel === tab));
+    if (tab === 'tools') {
+      const savedTool = window.localStorage.getItem('sco_active_tool') || 'demo';
+      setActiveToolPanel(savedTool);
+    }
     window.location.hash = tab;
     window.localStorage.setItem('scoActiveTab', tab);
+  };
+
+  const setActiveToolPanel = (tool) => {
+    const activeTool = tool === 'teleprompter' ? 'teleprompter' : 'demo';
+    root.querySelectorAll('[data-tool-tab]').forEach((button) => {
+      const active = button.dataset.toolTab === activeTool;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    root.querySelectorAll('[data-tool-panel]').forEach((panel) => panel.classList.toggle('is-active', panel.dataset.toolPanel === activeTool));
+    window.localStorage.setItem('sco_active_tool', activeTool);
   };
 
   const bindSwitchTabs = (scope = root) => {
@@ -543,6 +558,13 @@
     });
   };
 
+  const bindToolTabs = () => {
+    root.querySelectorAll('[data-tool-tab]').forEach((button) => {
+      button.addEventListener('click', () => setActiveToolPanel(button.dataset.toolTab));
+    });
+    setActiveToolPanel(window.localStorage.getItem('sco_active_tool') || 'demo');
+  };
+
   const toolTemplates = {
     werbung: ['Entdecke {topic}: {hook}.', 'Neu gedacht für {audience}.', 'Mach den nächsten Schritt mit {topic}.', 'Mehr Wirkung, weniger Aufwand.', 'Für alle, die klare Entscheidungen lieben.', 'Heute testen, morgen nicht mehr missen.', '{topic} bringt Fokus in deinen Alltag.', 'Jetzt starten und Unterschied hören.'],
     imagefilm: ['{topic} steht für Haltung und Qualität.', 'Ein Team mit Blick für Details.', 'Für {audience} gemacht.', 'Werte, die man hört und spürt.', 'Stark im Anspruch, klar in der Aussage.', 'Nahbar, präzise und verlässlich.', 'Aus Ideen werden Lösungen.', 'So klingt eine Marke mit Substanz.'],
@@ -563,18 +585,32 @@
         <label>Länge<select name="length"><option value="10">10s</option><option value="20">20s</option><option value="30" selected>30s</option><option value="45">45s</option><option value="60">60s</option></select></label>
         <label>Zielgruppe<input name="audience" type="text" placeholder="z.B. B2B, Tech"></label>
         <label>Produkt/Topic<input name="topic" type="text" required placeholder="z.B. Kaffee-Abo"></label>
-        <button class="sco-btn sco-btn-primary" type="submit">Text generieren</button>
+        <button class="sco-btn sco-btn-primary sco-tool-generate-btn" type="submit">Text generieren</button>
       </form><div data-sco-generator-output></div>`;
       gen.querySelector('[data-sco-generator-form]').addEventListener('submit', (event) => {
         event.preventDefault();
         const data = Object.fromEntries(new FormData(event.currentTarget).entries());
         const lines = toolTemplates[data.genre] || toolTemplates.werbung;
-        const count = Number(data.length) <= 10 ? 2 : (Number(data.length) <= 20 ? 3 : (Number(data.length) <= 30 ? 4 : 6));
-        const textOut = Array.from({ length: count }).map((_,i)=> lines[i % lines.length].replaceAll('{topic}', data.topic).replaceAll('{audience}', data.audience || 'deine Zielgruppe').replaceAll('{hook}', data.tone)).join(' ');
+        const targetWords = (() => {
+          const l = Number(data.length || 30);
+          if (l <= 10) return 24;
+          if (l <= 20) return 48;
+          if (l <= 30) return 80;
+          if (l <= 45) return 110;
+          return 140;
+        })();
+        const phrasePool = lines.map((line) => line.replaceAll('{topic}', data.topic).replaceAll('{audience}', data.audience || 'deine Zielgruppe').replaceAll('{hook}', data.tone));
+        const words = [];
+        let idx = 0;
+        while (words.length < targetWords) {
+          words.push(...String(phrasePool[idx % phrasePool.length]).split(/\s+/));
+          idx += 1;
+        }
+        const textOut = words.slice(0, targetWords).join(' ');
         const regie = [`Tempo: ${data.tone === 'dynamisch' ? 'zackig' : 'mittel'}`, `Pausen: ${(data.genre === 'hoerbuch' || data.genre === 'doku') ? 'deutlich setzen' : 'kurz und rhythmisch'}`, 'Smile: natürlich', `Betonungsfokus: ${data.topic}`];
         const music = data.genre === 'werbung' ? 'Dezenter Corporate Pop, 95–110 BPM.' : 'Leichtes Ambient-Bett, 85–100 BPM.';
         state.generatedTool = { text: textOut, regie, genre: data.genre };
-        gen.querySelector('[data-sco-generator-output]').innerHTML = `<div class="sco-tool-output"><h4>Regie</h4><ul>${regie.map((r)=>`<li>${esc(r)}</li>`).join('')}</ul><h4>Musikvorschlag</h4><p>${esc(music)}</p><h4>Text</h4><p>${esc(textOut)}</p><div class="sco-actions"><button type="button" class="sco-btn" data-copy-gen-text>Copy Text</button><button type="button" class="sco-btn" data-copy-gen-regie>Copy Regie</button><button type="button" class="sco-btn ${state.premium ? '' : 'is-disabled'}" ${state.premium ? '' : 'disabled'} data-save-gen-script>Als Library-Script speichern</button></div></div>`;
+        gen.querySelector('[data-sco-generator-output]').innerHTML = `<div class="sco-tool-output"><h4>Regie</h4><ul>${regie.map((r)=>`<li>${esc(r)}</li>`).join('')}</ul><h4>Musikvorschlag</h4><p>${esc(music)}</p><h4>Text</h4><p>${esc(textOut)}</p><div class="sco-actions"><button type="button" class="sco-btn" data-copy-gen-text>Copy Text</button><button type="button" class="sco-btn" data-copy-gen-regie>Copy Regie</button><button type="button" class="sco-btn ${state.premium ? '' : 'is-disabled'}" ${state.premium ? '' : 'disabled'} data-save-gen-script title="Nur Premium">In Bibliothek speichern</button></div></div>`;
         gen.querySelector('[data-copy-gen-text]')?.addEventListener('click', async ()=>{ await navigator.clipboard.writeText(textOut); toast('Text kopiert.');});
         gen.querySelector('[data-copy-gen-regie]')?.addEventListener('click', async ()=>{ await navigator.clipboard.writeText(regie.join('\n')); toast('Regie kopiert.');});
         gen.querySelector('[data-save-gen-script]')?.addEventListener('click', async ()=>{
@@ -587,7 +623,7 @@
     }
 
     if (tele) {
-      tele.innerHTML = `<div class="sco-card-header"><h3>Teleprompter</h3></div><textarea data-sco-teleprompter-text rows="6" placeholder="Text einfügen oder aus Bibliothek wählen"></textarea><div class="sco-tool-controls"><label>Speed (WPM)<input type="range" min="80" max="220" value="130" data-sco-tp-speed></label><label>Font size<input type="range" min="18" max="56" value="32" data-sco-tp-font></label><label>Line height<input type="range" min="1.2" max="2" step="0.1" value="1.5" data-sco-tp-line></label><label><input type="checkbox" data-sco-tp-mirror> Mirror</label><label><input type="checkbox" data-sco-tp-focus> Focus mode</label></div><div class="sco-actions"><button class="sco-btn sco-btn-primary" type="button" data-sco-tp-start>Start</button><button class="sco-btn" type="button" data-sco-tp-pause>Pause</button><button class="sco-btn" type="button" data-sco-tp-reset>Reset</button><button class="sco-btn" type="button" data-sco-tp-library>Text aus Bibliothek wählen</button></div><div class="sco-teleprompter-view" data-sco-tp-view><div class="sco-teleprompter-content" data-sco-tp-content></div><div class="sco-teleprompter-focus" hidden></div></div>`;
+      tele.innerHTML = `<div class="sco-card-header"><h3>Teleprompter</h3></div><textarea data-sco-teleprompter-text rows="6" placeholder="Text einfügen oder aus Bibliothek wählen"></textarea><div class="sco-tool-controls"><label>Speed (WPM)<input type="range" min="80" max="220" value="130" data-sco-tp-speed></label><label>Font size<input type="range" min="18" max="56" value="32" data-sco-tp-font></label><label>Line height<input type="range" min="1.2" max="2" step="0.1" value="1.5" data-sco-tp-line></label><label><input type="checkbox" data-sco-tp-mirror> Mirror</label><label><input type="checkbox" data-sco-tp-focus> Focus mode</label></div><div class="sco-actions"><button class="sco-btn sco-btn-primary" type="button" data-sco-tp-start>Start</button><button class="sco-btn" type="button" data-sco-tp-pause>Pause</button><button class="sco-btn" type="button" data-sco-tp-reset>Reset</button><button class="sco-btn" type="button" data-sco-tp-library>Aus Bibliothek wählen</button><button class="sco-btn" type="button" data-sco-tp-from-generator>Aus Demo Generator übernehmen</button></div><div class="sco-teleprompter-view" data-sco-tp-view><div class="sco-teleprompter-content" data-sco-tp-content></div><div class="sco-teleprompter-focus" hidden></div></div>`;
       const textArea = tele.querySelector('[data-sco-teleprompter-text]');
       const content = tele.querySelector('[data-sco-tp-content]');
       const view = tele.querySelector('[data-sco-tp-view]');
@@ -622,6 +658,15 @@
       tele.querySelector('[data-sco-tp-start]').addEventListener('click', () => { if (state.teleprompter.running) return; state.teleprompter.running = true; state.teleprompter.lastTs = 0; state.teleprompter.raf = requestAnimationFrame(step); });
       tele.querySelector('[data-sco-tp-pause]').addEventListener('click', () => { state.teleprompter.running = false; if (state.teleprompter.raf) cancelAnimationFrame(state.teleprompter.raf); });
       tele.querySelector('[data-sco-tp-reset]').addEventListener('click', () => { state.teleprompter.running = false; if (state.teleprompter.raf) cancelAnimationFrame(state.teleprompter.raf); state.teleprompter.offset = 0; view.scrollTop = 0; });
+      tele.querySelector('[data-sco-tp-from-generator]').addEventListener('click', () => {
+        if (!state.generatedTool?.text) {
+          toast('Bitte zuerst im Demo Generator einen Text erzeugen.');
+          return;
+        }
+        textArea.value = state.generatedTool.text;
+        sync();
+      });
+
       tele.querySelector('[data-sco-tp-library]').addEventListener('click', () => {
         const scripts = state.library.filter((item) => (item.category_key || item.type) === 'script').slice(0, 20);
         drawer.openDrawer({ title: 'Script auswählen', iconClass: 'fa-solid fa-file-lines', html: scripts.map((item) => `<button type=\"button\" class=\"sco-btn\" data-pick-script=\"${item.id}\">${esc(item.title)}</button>`).join('<div style=\"height:8px\"></div>') || '<p>Keine Skripte verfügbar.</p>' });
@@ -641,6 +686,7 @@
     bindLibraryCategories();
     bindAdminTestPlan();
     bindCoachReset();
+    bindToolTabs();
     await loadDashboard();
     updateHeader();
     renderToday();
