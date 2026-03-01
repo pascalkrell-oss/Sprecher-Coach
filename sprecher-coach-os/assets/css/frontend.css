@@ -182,3 +182,62 @@ body.sco-drawer-open { overflow: hidden; }
   border-radius: 14px;
   background: var(--sco-surface-2);
 }
+
+.sco-script-card {
+  margin-top: var(--sco-gap-3);
+  border: 1px solid var(--sco-border);
+  border-radius: var(--sco-radius-sm);
+  padding: 16px;
+  background: var(--sco-surface-2);
+  display: grid;
+  gap: 10px;
+}
+
+.sco-script-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sco-script-card__title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sco-script-card__title-wrap h3 {
+  font-size: 18px;
+}
+
+.sco-script-card__subtitle {
+  font-size: 13px;
+}
+
+.sco-script-card__body {
+  white-space: pre-line;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--sco-text);
+}
+
+.sco-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 10001;
+  background: #0f172a;
+  color: #fff;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-size: 13px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all .2s ease;
+}
+
+.sco-toast.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
