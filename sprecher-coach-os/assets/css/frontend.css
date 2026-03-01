@@ -331,3 +331,55 @@ body.sco-drawer-open { overflow: hidden; }
   outline-offset: 2px;
   border-radius: 8px;
 }
+
+/* ========================================================================
+   SCO — HARD KILL: Remove ALL hover effects (plugin + theme + inline)
+   ======================================================================== */
+.sco-app :where(.sco-card, .sco-panel, .sco-kpi, .sco-nav, .sco-nav a, .sco-nav button,
+                .sco-category-card, .sco-library-item, .sco-tools-panel, .sco-tile,
+                .sco-section, .sco-box, .sco-widget, .sco-surface, .sco-shell, .sco-main, .sco-side)
+:hover {
+  background: inherit !important;
+  background-color: inherit !important;
+  border-color: inherit !important;
+  box-shadow: inherit !important;
+  color: inherit !important;
+  filter: none !important;
+  transform: none !important;
+  opacity: inherit !important;
+  outline: inherit !important;
+}
+
+/* Remove any hover transitions that create "feel" changes */
+.sco-app :where(.sco-card, .sco-panel, .sco-kpi, .sco-category-card, .sco-library-item, .sco-tile) {
+  transition: none !important;
+}
+
+/* Buttons: still no visual hover, but ensure text stays white if any hover slips through */
+.sco-app :where(.sco-btn, .sco-btn-primary, .sco-btn-secondary, button.sco-btn):hover {
+  color: #fff !important;
+  background: inherit !important;
+  border-color: inherit !important;
+  box-shadow: inherit !important;
+}
+
+/* Keep only focus-visible for accessibility */
+.sco-app *:focus-visible {
+  outline: 2px solid var(--sco-primary) !important;
+  outline-offset: 2px !important;
+  border-radius: 8px;
+}
+
+/* If Blocksy/theme adds hover styles via links/cards, neutralize within app */
+.sco-app a:hover,
+.sco-app .ct-button:hover,
+.sco-app .button:hover {
+  background: inherit !important;
+  border-color: inherit !important;
+  box-shadow: inherit !important;
+  color: inherit !important;
+  transform: none !important;
+  filter: none !important;
+}
+
+/* ===================================================================== */
