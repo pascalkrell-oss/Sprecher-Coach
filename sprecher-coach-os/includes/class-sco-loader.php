@@ -30,6 +30,7 @@ class SCO_Loader {
 
     public function run() {
         add_action('plugins_loaded', [$this, 'load_textdomain']);
+        add_action('plugins_loaded', ['SCO_DB', 'maybe_upgrade_schema']);
         add_action('wp_enqueue_scripts', [$this->shortcodes, 'register_assets']);
         add_action('admin_enqueue_scripts', [$this->admin, 'register_assets']);
         add_action('admin_menu', [$this->admin, 'register_menu']);

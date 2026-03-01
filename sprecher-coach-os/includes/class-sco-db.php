@@ -5,6 +5,8 @@ if (!defined('ABSPATH')) {
 }
 
 class SCO_DB {
+    const SCHEMA_VERSION = 2;
+
     public static function table($key) {
         global $wpdb;
 
@@ -40,6 +42,9 @@ class SCO_DB {
             duration_min TINYINT UNSIGNED NOT NULL DEFAULT 5,
             difficulty TINYINT UNSIGNED NOT NULL DEFAULT 1,
             self_check_questions LONGTEXT NOT NULL,
+            script_text LONGTEXT NULL,
+            script_source VARCHAR(20) NOT NULL DEFAULT 'drill',
+            script_meta LONGTEXT NULL,
             xp_reward SMALLINT UNSIGNED NOT NULL DEFAULT 10,
             is_premium TINYINT(1) NOT NULL DEFAULT 0,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -164,6 +169,36 @@ class SCO_DB {
 
         foreach ($sql as $query) {
             dbDelta($query);
+        }
+
+        self::ensure_drill_text_columns();
+        update_option('sco_db_version', self::SCHEMA_VERSION);
+    }
+
+    public static function maybe_upgrade_schema() {
+        $current = (int) get_option('sco_db_version', 0);
+        if ($current >= self::SCHEMA_VERSION) {
+            return;
+        }
+
+        self::create_tables();
+    }
+
+    private static function ensure_drill_text_columns() {
+        global $wpdb;
+
+        $table = self::table('drills');
+        $columns = [
+            'script_text' => 'ALTER TABLE ' . $table . ' ADD COLUMN script_text LONGTEXT NULL',
+            'script_source' => "ALTER TABLE {$table} ADD COLUMN script_source VARCHAR(20) NOT NULL DEFAULT 'drill'",
+            'script_meta' => 'ALTER TABLE ' . $table . ' ADD COLUMN script_meta LONGTEXT NULL',
+        ];
+
+        foreach ($columns as $column => $query) {
+            $exists = (bool) $wpdb->get_var($wpdb->prepare('SHOW COLUMNS FROM ' . $table . ' LIKE %s', $column));
+            if (!$exists) {
+                $wpdb->query($query);
+            }
         }
     }
 }

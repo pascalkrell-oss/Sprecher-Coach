@@ -18,6 +18,7 @@ class SCO_API {
         register_rest_route('sco/v1', '/missions', array_merge(['methods' => 'GET', 'callback' => [$this, 'missions']], $auth));
         register_rest_route('sco/v1', '/missions/step-complete', array_merge(['methods' => 'POST', 'callback' => [$this, 'mission_step_complete']], $auth));
         register_rest_route('sco/v1', '/drills/recommend', array_merge(['methods' => 'GET', 'callback' => [$this, 'recommend_drill']], $auth));
+        register_rest_route('sco/v1', '/drills/alt-text', array_merge(['methods' => 'GET', 'callback' => [$this, 'alt_text']], $auth));
         register_rest_route('sco/v1', '/library', array_merge(['methods' => 'GET', 'callback' => [$this, 'library']], $auth));
         register_rest_route('sco/v1', '/library/open', array_merge(['methods' => 'POST', 'callback' => [$this, 'library_open']], $auth));
     }
@@ -141,7 +142,7 @@ class SCO_API {
         $pick = $pool[array_rand($pool)];
         $pick['self_check_questions'] = json_decode($pick['self_check_questions'], true);
 
-        return $pick;
+        return $this->decorate_drill_with_script($user_id, $pick);
     }
 
     public function complete_drill(WP_REST_Request $request) {
@@ -293,7 +294,7 @@ class SCO_API {
             if ($by_id) {
                 if ($premium || (int) $by_id['is_premium'] === 0) {
                     $by_id['self_check_questions'] = json_decode($by_id['self_check_questions'], true);
-                    return rest_ensure_response($by_id);
+                    return rest_ensure_response($this->decorate_drill_with_script($user_id, $by_id));
                 }
             }
         }
@@ -332,7 +333,59 @@ class SCO_API {
         $pick = $pool[array_rand($pool)];
         $pick['self_check_questions'] = json_decode($pick['self_check_questions'], true);
 
-        return rest_ensure_response($pick);
+        return rest_ensure_response($this->decorate_drill_with_script($user_id, $pick));
+    }
+
+    private function decorate_drill_with_script($user_id, array $drill) {
+        $resolved = sco_resolve_drill_text($user_id, $drill);
+        $drill['script_text_resolved'] = $resolved['text'];
+        $drill['script_source'] = $resolved['source'];
+        $drill['script_title'] = $resolved['title'];
+
+        return $drill;
+    }
+
+    public function alt_text(WP_REST_Request $request) {
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $skill = sanitize_key((string) $request->get_param('skill'));
+        if (!$skill) {
+            $skill = 'werbung';
+        }
+
+        $variant = max(1, (int) $request->get_param('variant'));
+
+        $drill = [
+            'id' => 0,
+            'skill_key' => $skill,
+            'difficulty' => 1 + (($variant - 1) % 3),
+            'title' => SCO_Utils::label_skill($skill) . ' Drill',
+            'script_text' => '',
+            'script_source' => 'pool',
+        ];
+
+        $items = $wpdb->get_results($wpdb->prepare(
+            'SELECT id, title, content FROM ' . SCO_DB::table('library') . ' WHERE category_key=%s AND skill_key=%s ORDER BY id ASC',
+            'script',
+            $skill
+        ), ARRAY_A);
+
+        if (!empty($items)) {
+            $index = abs(crc32($user_id . '|' . SCO_Utils::today() . '|' . $skill . '|alt|' . $variant)) % count($items);
+            $selected = $items[$index];
+            $text = trim(wp_strip_all_tags((string) ($selected['content'] ?? '')));
+            if ($text !== '') {
+                return rest_ensure_response([
+                    'text' => sanitize_textarea_field($text),
+                    'source' => 'library',
+                    'title' => sanitize_text_field((string) ($selected['title'] ?? 'Bibliothekstext')),
+                ]);
+            }
+        }
+
+        $resolved = sco_resolve_drill_text($user_id, $drill);
+        return rest_ensure_response($resolved);
     }
 
     private function normalize_mission_step(array $step) {

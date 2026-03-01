@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) {
 }
 
 class SCO_Seeder {
-    const TARGET_SEED_VERSION = 2;
+    const TARGET_SEED_VERSION = 3;
 
     public static function seed_if_empty() {
         $stored_version = (int) get_option('sco_seed_version', 0);
@@ -30,6 +30,8 @@ class SCO_Seeder {
         self::import_drills($overwrite, $report);
         self::import_library($overwrite, $report);
         self::import_missions($overwrite, $report);
+        self::ensure_drill_script_texts($report);
+        self::ensure_library_script_items($report, $overwrite);
 
         update_option('sco_seed_version', self::TARGET_SEED_VERSION);
 
@@ -234,6 +236,70 @@ class SCO_Seeder {
 
         $wpdb->insert(SCO_DB::table('mission_steps'), $data);
         $report['mission_steps']['inserted']++;
+    }
+
+    private static function ensure_drill_script_texts(array &$report) {
+        global $wpdb;
+
+        $table = SCO_DB::table('drills');
+        $has_script_text = (bool) $wpdb->get_var($wpdb->prepare('SHOW COLUMNS FROM ' . $table . ' LIKE %s', 'script_text'));
+        if (!$has_script_text) {
+            return;
+        }
+
+        $pool_map = SCO_Utils::text_pools();
+        $drills = $wpdb->get_results('SELECT id, skill_key, title FROM ' . $table . " WHERE script_text IS NULL OR TRIM(script_text)='' ORDER BY id ASC", ARRAY_A);
+
+        foreach ($drills as $drill) {
+            $skill = sanitize_key((string) ($drill['skill_key'] ?? 'werbung'));
+            $pool = $pool_map[$skill] ?? $pool_map['werbung'];
+            $seed = implode('|', [$drill['id'], $skill, $drill['title']]);
+            $idx = abs(crc32($seed)) % count($pool);
+            $wpdb->update($table, [
+                'script_text' => sanitize_textarea_field($pool[$idx]),
+                'script_source' => 'pool',
+                'script_meta' => wp_json_encode(['seed' => $seed, 'skill' => $skill]),
+            ], ['id' => (int) $drill['id']]);
+            $report['drills']['updated']++;
+        }
+    }
+
+    private static function ensure_library_script_items(array &$report, $overwrite) {
+        global $wpdb;
+
+        $skills = ['werbung', 'imagefilm', 'erklaervideo', 'elearning', 'telefon', 'hoerbuch', 'doku'];
+        $pool_map = SCO_Utils::text_pools();
+
+        foreach ($skills as $skill) {
+            $existing = (int) $wpdb->get_var($wpdb->prepare(
+                'SELECT COUNT(*) FROM ' . SCO_DB::table('library') . ' WHERE category_key=%s AND skill_key=%s',
+                'script',
+                $skill
+            ));
+
+            if ($existing >= 15 && !$overwrite) {
+                continue;
+            }
+
+            $pool = $pool_map[$skill] ?? [];
+            if (empty($pool)) {
+                continue;
+            }
+
+            for ($i = $existing; $i < 15; $i++) {
+                $text = $pool[$i % count($pool)];
+                $wpdb->insert(SCO_DB::table('library'), [
+                    'category_key' => 'script',
+                    'skill_key' => $skill,
+                    'difficulty' => ($i % 3) + 1,
+                    'duration_min' => 3,
+                    'title' => sprintf('%s Script %d', SCO_Utils::label_skill($skill), $i + 1),
+                    'content' => wp_kses_post($text),
+                    'is_premium' => 0,
+                ]);
+                $report['library']['inserted']++;
+            }
+        }
     }
 
     private static function drills_seed() {

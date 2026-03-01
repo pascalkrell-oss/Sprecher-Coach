@@ -33,6 +33,18 @@
     return div.innerHTML;
   };
 
+  const toast = (message) => {
+    const node = document.createElement('div');
+    node.className = 'sco-toast';
+    node.textContent = message;
+    root.appendChild(node);
+    window.setTimeout(() => node.classList.add('is-visible'), 5);
+    window.setTimeout(() => {
+      node.classList.remove('is-visible');
+      window.setTimeout(() => node.remove(), 220);
+    }, 1600);
+  };
+
   const getMissionRunState = () => {
     try {
       return JSON.parse(window.sessionStorage.getItem(MISSION_RUN_STATE_KEY) || '{}');
@@ -259,16 +271,53 @@
     state.answers = {};
     const tileQuestions = questions.filter((q) => q.type === 'checkbox' || q.type === 'checkbox_multi');
     const sliderQuestions = questions.filter((q) => q.type === 'scale' || q.type === 'scale_1_5');
+    const missionContext = getMissionContext();
+    const missionScriptText = missionContext?.step?.script_text ? String(missionContext.step.script_text).trim() : '';
+    const resolvedText = String(state.drill.script_text_resolved || '').trim();
+    const scriptText = missionScriptText || resolvedText || 'Sprich den Text ruhig und klar. Konzentriere dich auf Atmung, Betonung und Pausen.';
+    const scriptSource = missionScriptText ? 'mission' : (state.drill.script_source || 'pool');
+    const scriptTitle = missionScriptText ? (missionContext?.step?.title || 'Mission-Text') : (state.drill.script_title || 'Trainingstext');
+    const sourceLabelMap = { drill: 'Skript', library: 'Bibliothek', pool: 'Trainingstext', mission: 'Mission' };
+    const sourceLabel = sourceLabelMap[scriptSource] || 'Trainingstext (Fallback)';
 
     wrap.innerHTML = `
       <div class="sco-card-header"><h2>${esc(state.drill.title)}</h2></div>
       <p>${esc(state.drill.description)}</p>
+      <section class="sco-script-card">
+        <div class="sco-script-card__header">
+          <div class="sco-script-card__title-wrap">
+            <h3>Übungstext</h3>
+            <span class="sco-pill sco-pill-neutral">${esc(sourceLabel)}</span>
+          </div>
+          <div class="sco-btn-group">
+            <button type="button" class="sco-btn" data-sco-copy-script><i class="fa-solid fa-copy" aria-hidden="true"></i> Copy</button>
+            <button type="button" class="sco-btn" data-sco-alt-script>Neuer Text</button>
+          </div>
+        </div>
+        <p class="sco-muted sco-script-card__subtitle">${esc(scriptTitle || 'Trainingstext')}</p>
+        <div class="sco-script-card__body" data-sco-script-text>${esc(scriptText)}</div>
+      </section>
       <div class="sco-timer-row"><strong data-sco-timer>00:00</strong><div class="sco-btn-group"><button type="button" class="sco-btn" data-sco-start>Start</button><button type="button" class="sco-btn" data-sco-pause>Pause</button><button type="button" class="sco-btn" data-sco-reset>Reset</button></div></div>
       <div class="sco-self-check-grid">
         ${sliderQuestions.map((q, i) => `<div class="sco-self-check-item"><label>${esc(q.text || q.label || `Slider ${i + 1}`)}</label><input type="range" min="1" max="5" value="3" data-range-key="slider_${i}"><small class="sco-muted">Wert: <span data-range-value>3</span></small></div>`).join('')}
         ${tileQuestions.length ? `<div class="sco-self-check-item"><label>Self-Check</label><div class="sco-toggle-tiles">${tileQuestions.map((q, i) => `<button type="button" class="sco-toggle-tile" aria-pressed="false" data-toggle-key="tile_${i}"><span class="sco-check">✓</span>${esc(q.text || q.label || `Check ${i + 1}`)}</button>`).join('')}</div></div>` : ''}
       </div>
       <div class="sco-actions"><button type="button" class="sco-btn sco-btn-primary" data-sco-complete disabled>Abschließen</button></div>`;
+
+    wrap.querySelector('[data-sco-copy-script]')?.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(scriptText);
+      toast('Kopiert!');
+    });
+
+    wrap.querySelector('[data-sco-alt-script]')?.addEventListener('click', async () => {
+      const variant = Number(state.drill.script_variant || 1) + 1;
+      const alt = await api(`drills/alt-text?skill=${encodeURIComponent(state.drill.skill_key || 'werbung')}&variant=${variant}`);
+      state.drill.script_variant = variant;
+      state.drill.script_text_resolved = alt?.text || state.drill.script_text_resolved;
+      state.drill.script_source = alt?.source || state.drill.script_source;
+      state.drill.script_title = alt?.title || state.drill.script_title;
+      renderDaily();
+    });
 
     bindDailyActions();
     updateCompleteState();
