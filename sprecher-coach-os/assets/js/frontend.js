@@ -82,43 +82,52 @@
   const setMissionContext = (ctx) => window.sessionStorage.setItem(MISSION_CONTEXT_KEY, JSON.stringify(ctx));
 
   const drawer = (() => {
-    const overlay = root.querySelector('.sco-overlay');
-    const panel = root.querySelector('.sco-drawer');
+    const overlayRoot = root.closest('#scoCoachOverlay');
+    const backdrop = overlayRoot?.querySelector('.sco-drawer-overlay');
+    const panel = overlayRoot?.querySelector('.sco-drawer');
     const title = panel?.querySelector('[data-sco-drawer-title]');
     const icon = panel?.querySelector('.sco-drawer__icon');
     const body = panel?.querySelector('[data-sco-drawer-body]');
     const foot = panel?.querySelector('[data-sco-drawer-foot]');
     const closeBtn = panel?.querySelector('.sco-drawer__close');
 
+    let closeTimer = null;
+
     const closeDrawer = () => {
-      if (!panel || !overlay) return;
+      if (!panel || !backdrop) return;
       panel.classList.remove('is-open');
       panel.setAttribute('aria-hidden', 'true');
-      overlay.hidden = true;
-      body.innerHTML = '';
-      foot.innerHTML = '';
-      foot.classList.remove('has-content');
-      icon.innerHTML = '';
+      backdrop.hidden = true;
+      window.clearTimeout(closeTimer);
+      closeTimer = window.setTimeout(() => {
+        panel.hidden = true;
+        body.innerHTML = '';
+        foot.innerHTML = '';
+        foot.classList.remove('has-content');
+        icon.innerHTML = '';
+      }, 320);
       document.body.classList.remove('sco-drawer-open');
     };
 
     const openDrawer = ({ title: heading, iconClass, html, footerHtml }) => {
-      if (!panel || !overlay) return;
+      if (!panel || !backdrop) return;
+      window.clearTimeout(closeTimer);
       title.textContent = heading || 'Details';
       icon.innerHTML = iconClass ? `<i class="${iconClass}"></i>` : '';
       body.innerHTML = html || '';
       foot.innerHTML = footerHtml || '';
       foot.classList.toggle('has-content', Boolean(footerHtml));
-      overlay.hidden = false;
-      panel.classList.add('is-open');
+      panel.hidden = false;
+      backdrop.hidden = false;
+      requestAnimationFrame(() => panel.classList.add('is-open'));
       panel.setAttribute('aria-hidden', 'false');
       document.body.classList.add('sco-drawer-open');
       closeBtn?.focus();
     };
 
     closeBtn?.addEventListener('click', closeDrawer);
-    overlay?.addEventListener('click', closeDrawer);
-    const isOpen = () => Boolean(panel?.classList.contains('is-open'));
+    backdrop?.addEventListener('click', closeDrawer);
+    const isOpen = () => Boolean(panel && !panel.hidden && panel.classList.contains('is-open'));
 
     return { openDrawer, closeDrawer, isOpen };
   })();
@@ -920,6 +929,7 @@
   const createModalController = (launcher) => {
     const overlay = launcher.querySelector('#scoCoachOverlay');
     const mount = launcher.querySelector('#scoCoachAppMount');
+    const modal = launcher.querySelector('.sco-modal');
     const closeBtn = launcher.querySelector('.sco-modal__close');
     const openBtn = launcher.querySelector('[data-sco-launcher-btn]');
     if (!overlay || !mount || !openBtn) return;
@@ -927,7 +937,7 @@
     let lastActiveElement = null;
     let appLoaded = false;
 
-    const getFocusable = () => Array.from(overlay.querySelectorAll(focusableSelector)).filter((el) => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'));
+    const getFocusable = () => Array.from(overlay.querySelectorAll(focusableSelector)).filter((el) => !el.hasAttribute('disabled') && el.getAttribute('aria-hidden') !== 'true' && !el.hidden);
 
     const persistModalState = () => {
       const activeTab = overlay.querySelector('[data-tab].is-active')?.dataset.tab;
@@ -978,9 +988,14 @@
       initCoachAppsInScope(mount);
     };
 
+    let closeTimer = null;
+
     const openCoachModal = async () => {
+      window.clearTimeout(closeTimer);
       lastActiveElement = document.activeElement;
       overlay.hidden = false;
+      overlay.classList.remove('is-closing');
+      requestAnimationFrame(() => overlay.classList.add('is-open'));
       document.body.classList.add('sco-modal-open');
       document.body.style.overflow = 'hidden';
       closeBtn?.focus();
@@ -996,13 +1011,33 @@
 
     const closeCoachModal = () => {
       persistModalState();
-      overlay.hidden = true;
+      overlay.classList.remove('is-open');
+      overlay.classList.add('is-closing');
       document.body.classList.remove('sco-modal-open');
       document.body.style.overflow = '';
       document.removeEventListener('keydown', trapFocus);
       document.removeEventListener('keydown', onEscape);
       document.dispatchEvent(new CustomEvent('sco:overlay:close'));
-      if (lastActiveElement && typeof lastActiveElement.focus === 'function') lastActiveElement.focus();
+      window.clearTimeout(closeTimer);
+      const finalizeClose = () => {
+        overlay.hidden = true;
+        overlay.classList.remove('is-closing');
+        if (lastActiveElement && typeof lastActiveElement.focus === 'function') lastActiveElement.focus();
+      };
+      if (modal) {
+        const onEnd = (event) => {
+          if (event.target !== modal || event.propertyName !== 'transform') return;
+          modal.removeEventListener('transitionend', onEnd);
+          finalizeClose();
+        };
+        modal.addEventListener('transitionend', onEnd);
+        closeTimer = window.setTimeout(() => {
+          modal.removeEventListener('transitionend', onEnd);
+          finalizeClose();
+        }, 320);
+      } else {
+        closeTimer = window.setTimeout(finalizeClose, 320);
+      }
     };
 
     openBtn.addEventListener('click', openCoachModal);

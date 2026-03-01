@@ -1,18 +1,4 @@
 <?php if (!defined('ABSPATH')) { exit; } ?>
-<?php if (is_user_logged_in() && current_user_can('manage_options')) : ?>
-  <?php $test_plan = sanitize_key((string) get_user_meta(get_current_user_id(), 'sco_test_plan', true)); ?>
-  <section class="sco-admin-testmode sco-card" data-sco-admin-test-plan data-current-plan="<?php echo esc_attr($test_plan ?: 'off'); ?>"> 
-    <div>
-      <strong><?php echo esc_html__('Test: Zugriff simulieren', 'sprecher-coach-os'); ?></strong>
-      <p class="sco-muted"><?php echo esc_html__('Nur Testmodus (nur für dich)', 'sprecher-coach-os'); ?></p>
-    </div>
-    <div class="sco-segmented" role="group" aria-label="Test Plan">
-      <button type="button" class="sco-btn <?php echo $test_plan === 'free' ? 'is-active' : ''; ?>" data-plan="free">Test: FREE</button>
-      <button type="button" class="sco-btn <?php echo $test_plan === 'premium' ? 'is-active' : ''; ?>" data-plan="premium">Test: PREMIUM</button>
-      <button type="button" class="sco-btn <?php echo $test_plan === '' ? 'is-active' : ''; ?>" data-plan="off">Aus</button>
-    </div>
-  </section>
-<?php endif; ?>
 <div id="sco-root" class="sco-app" data-upgrade-url="<?php echo esc_url(sco_checkout_url()); ?>">
   <?php if (!is_user_logged_in()) : ?>
     <section class="sco-login-required sco-card" aria-live="polite">
@@ -192,18 +178,6 @@
       <button type="button" data-tab="tools"><?php echo esc_html__('Tools', 'sprecher-coach-os'); ?></button>
     </nav>
 
-    <div class="sco-overlay" hidden></div>
-    <aside class="sco-drawer" aria-hidden="true" role="dialog" aria-modal="true">
-      <div class="sco-drawer__head">
-        <div class="sco-drawer__title">
-          <span class="sco-drawer__icon" aria-hidden="true"></span>
-          <h3 data-sco-drawer-title><?php echo esc_html__('Details', 'sprecher-coach-os'); ?></h3>
-        </div>
-        <button class="sco-icon-btn sco-drawer__close" type="button" aria-label="Schließen"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <div class="sco-drawer__body" data-sco-drawer-body></div>
-      <div class="sco-drawer__foot" data-sco-drawer-foot></div>
-    </aside>
 
     <div class="sco-cmdk" data-sco-cmdk hidden aria-hidden="true">
       <div class="sco-cmdk__panel" role="dialog" aria-modal="true" aria-label="Schnellzugriff">
