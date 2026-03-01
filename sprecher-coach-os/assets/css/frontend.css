@@ -298,88 +298,148 @@ body.sco-drawer-open { overflow: hidden; }
   .sco-tool-form, .sco-tool-controls, .sco-admin-testmode { grid-template-columns: 1fr; display: grid; }
 }
 
-
-/* === SCO: Disable all hover visual effects (hard override) === */
-.sco-app .sco-card:hover,
-.sco-app .sco-panel:hover,
-.sco-app .sco-kpi:hover,
-.sco-app .sco-tile:hover,
-.sco-app .sco-category-card:hover,
-.sco-app .sco-library-item:hover,
-.sco-app .sco-nav a:hover,
-.sco-app .sco-nav button:hover,
-.sco-app .sco-btn:hover,
-.sco-app a:hover,
-.sco-app button:hover {
-  background: inherit !important;
-  border-color: inherit !important;
-  box-shadow: inherit !important;
-  color: inherit !important;
-  filter: none !important;
-  transform: none !important;
-}
-
-.sco-app .sco-btn:hover,
-.sco-app button.sco-btn:hover,
-.sco-app .sco-btn-primary:hover,
-.sco-app .sco-btn-secondary:hover {
-  color: #fff !important;
-}
-
-.sco-app *:focus-visible {
-  outline: 2px solid var(--sco-primary);
-  outline-offset: 2px;
-  border-radius: 8px;
-}
-
 /* ========================================================================
-   SCO — HARD KILL: Remove ALL hover effects (plugin + theme + inline)
+   SCO — NO HOVER (LOCKED): Boxes + lines never change on hover
    ======================================================================== */
-.sco-app :where(.sco-card, .sco-panel, .sco-kpi, .sco-nav, .sco-nav a, .sco-nav button,
-                .sco-category-card, .sco-library-item, .sco-tools-panel, .sco-tile,
-                .sco-section, .sco-box, .sco-widget, .sco-surface, .sco-shell, .sco-main, .sco-side)
-:hover {
-  background: inherit !important;
-  background-color: inherit !important;
-  border-color: inherit !important;
-  box-shadow: inherit !important;
-  color: inherit !important;
-  filter: none !important;
-  transform: none !important;
-  opacity: inherit !important;
-  outline: inherit !important;
-}
 
-/* Remove any hover transitions that create "feel" changes */
-.sco-app :where(.sco-card, .sco-panel, .sco-kpi, .sco-category-card, .sco-library-item, .sco-tile) {
+/* Remove transitions on all box-like elements so nothing feels hover-y */
+.sco-app .sco-card,
+.sco-app .sco-nav-list button,
+.sco-app .sco-library-category,
+.sco-app .sco-toggle-tile,
+.sco-app .sco-kpi-card,
+.sco-app .sco-btn,
+.sco-app .sco-icon-btn,
+.sco-app .sco-pill,
+.sco-app .sco-card-header,
+.sco-app hr {
   transition: none !important;
 }
 
-/* Buttons: still no visual hover, but ensure text stays white if any hover slips through */
-.sco-app :where(.sco-btn, .sco-btn-primary, .sco-btn-secondary, button.sco-btn):hover {
-  color: #fff !important;
-  background: inherit !important;
-  border-color: inherit !important;
-  box-shadow: inherit !important;
+/* Force consistent line styles (no theme defaults) */
+.sco-app hr {
+  border: 0 !important;
+  border-top: 1px solid var(--sco-border) !important;
+  margin: 14px 0 !important;
+}
+.sco-app .sco-card-header {
+  border-bottom: 1px solid var(--sco-border) !important;
+}
+.sco-app .sco-nav .sco-card-header {
+  border-bottom-color: rgba(255,255,255,0.1) !important;
 }
 
-/* Keep only focus-visible for accessibility */
+/* --- CARDS (default light) --- */
+.sco-app .sco-card:hover {
+  background: var(--sco-surface) !important;
+  border-color: var(--sco-border) !important;
+  box-shadow: var(--sco-shadow-1) !important;
+  color: var(--sco-text) !important;
+}
+
+/* Preserve special card backgrounds */
+.sco-app .sco-topbar:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #fafdff 100%) !important;
+}
+.sco-app .sco-login-required:hover {
+  background: var(--sco-surface) !important;
+}
+
+/* Ensure card header line stays stable on hover */
+.sco-app .sco-card:hover .sco-card-header {
+  border-bottom-color: var(--sco-border) !important;
+}
+.sco-app .sco-nav:hover .sco-card-header {
+  border-bottom-color: rgba(255,255,255,0.1) !important;
+}
+
+/* --- NAV CARD (dark) --- */
+.sco-app .sco-nav:hover {
+  background: #0f141a !important;
+  border-color: rgba(255,255,255,0.1) !important;
+  box-shadow: var(--sco-shadow-1) !important;
+  color: rgba(255,255,255,0.92) !important;
+}
+
+/* Nav items: never change on hover */
+.sco-app .sco-nav-list button:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  border-left-color: transparent !important;
+  color: rgba(255,255,255,0.65) !important;
+}
+.sco-app .sco-nav-list button:hover i {
+  color: rgba(255,255,255,0.65) !important;
+}
+.sco-app .sco-nav-list button.is-active:hover {
+  background: rgba(26, 147, 238, 0.18) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+  border-left-color: var(--sco-primary) !important;
+  color: rgba(255,255,255,0.92) !important;
+}
+.sco-app .sco-nav-list button.is-active:hover i {
+  color: var(--sco-primary) !important;
+}
+
+/* --- Library category cards --- */
+.sco-app .sco-library-category:hover {
+  background: var(--sco-surface) !important;
+  border-color: var(--sco-border) !important;
+  box-shadow: none !important;
+  color: var(--sco-text) !important;
+}
+.sco-app .sco-library-category.is-active:hover {
+  background: #fbfdff !important;
+  border-color: rgba(26,147,238,0.45) !important;
+}
+
+/* --- Toggle tiles --- */
+.sco-app .sco-toggle-tile:hover {
+  background: var(--sco-surface) !important;
+  border-color: var(--sco-border) !important;
+  box-shadow: none !important;
+}
+.sco-app .sco-toggle-tile.is-active:hover {
+  background: rgba(26,147,238,0.10) !important;
+  border-color: var(--sco-primary) !important;
+}
+
+/* --- Buttons --- */
+.sco-app .sco-btn:hover {
+  background: var(--sco-surface) !important;
+  border-color: var(--sco-border) !important;
+  box-shadow: none !important;
+  color: var(--sco-text) !important;
+}
+.sco-app .sco-btn-primary:hover {
+  background: var(--sco-primary) !important;
+  border-color: var(--sco-primary) !important;
+  box-shadow: 0 2px 6px rgba(26,147,238,0.28) !important;
+  color: #fff !important;
+}
+.sco-app .sco-btn-danger:hover {
+  background: #b42318 !important;
+  border-color: #b42318 !important;
+  color: #fff !important;
+}
+.sco-app .sco-icon-btn:hover {
+  background: #fff !important;
+  border-color: var(--sco-border) !important;
+  color: var(--sco-muted) !important;
+  box-shadow: none !important;
+}
+
+/* Links: no hover color change inside app */
+.sco-app a:hover {
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+/* Keep focus-visible only (accessibility) */
 .sco-app *:focus-visible {
   outline: 2px solid var(--sco-primary) !important;
   outline-offset: 2px !important;
   border-radius: 8px;
-}
-
-/* If Blocksy/theme adds hover styles via links/cards, neutralize within app */
-.sco-app a:hover,
-.sco-app .ct-button:hover,
-.sco-app .button:hover {
-  background: inherit !important;
-  border-color: inherit !important;
-  box-shadow: inherit !important;
-  color: inherit !important;
-  transform: none !important;
-  filter: none !important;
 }
 
 /* ===================================================================== */
