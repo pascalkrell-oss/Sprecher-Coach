@@ -75,8 +75,13 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-progress > div { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #3da8f5 0%, var(--sco-primary) 100%); transition: width .45s ease; }
 .sco-actions { margin-top: var(--sco-gap-3); display: flex; flex-wrap: wrap; gap: var(--sco-gap-2); }
 
-.sco-btn { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: var(--sco-pill); border: 1px solid var(--sco-border); background: var(--sco-surface); color: var(--sco-text); text-decoration: none; padding: 9px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: var(--sco-transition); }
-.sco-btn-primary { color: #fff; border-color: var(--sco-primary); background: var(--sco-primary); box-shadow: 0 2px 6px rgba(26, 147, 238, 0.28); }
+.sco-btn { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 9999px; border: none; background: var(--sco-primary); color: #fff; text-decoration: none; padding: 9px 16px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background-color .3s ease, color .3s ease, box-shadow .3s ease; }
+.sco-btn-primary { color: #fff; border: none; background: var(--sco-primary); box-shadow: 0 2px 6px rgba(26, 147, 238, 0.28); }
+.sco-btn:hover,
+.sco-btn-primary:hover {
+  background: var(--sco-primary-hover);
+  color: #fff;
+}
 .sco-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .sco-app button:focus-visible, .sco-app input:focus-visible, .sco-app a:focus-visible { outline: 2px solid rgba(26, 147, 238, 0.95); outline-offset: 2px; }
@@ -129,6 +134,50 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-mobile-tabs button { flex: 1; min-height: 38px; border: 1px solid transparent; border-radius: var(--sco-pill); background: transparent; color: var(--sco-muted); font-size: 13px; font-weight: 600; cursor: pointer; }
 .sco-mobile-tabs button.is-active { color: var(--sco-primary); border-color: rgba(26, 147, 238, 0.24); background: rgba(26, 147, 238, 0.1); }
 .sco-login-required { max-width: 720px; margin: 24px auto; background: var(--sco-surface); }
+.sco-status-inline { margin-bottom: 16px; }
+.sco-status-inline .sco-pill-row { justify-content: flex-start; }
+
+.sco-login-form-wrap {
+  margin-top: 18px;
+}
+
+.sco-login-form-wrap form {
+  display: grid;
+  gap: 12px;
+}
+
+.sco-login-form-wrap label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.sco-login-form-wrap input[type='text'],
+.sco-login-form-wrap input[type='password'] {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 14px;
+  border: 1px solid var(--sco-border);
+  padding: 10px 14px;
+}
+
+.sco-login-form-wrap input[type='submit'],
+.sco-launcher__btn,
+.sco-modal .sco-btn,
+.sco-modal button.sco-btn {
+  background: #1a93ee !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  color: #fff !important;
+  transition: background-color .3s ease !important;
+}
+
+.sco-login-form-wrap input[type='submit']:hover,
+.sco-launcher__btn:hover,
+.sco-modal .sco-btn:hover,
+.sco-modal button.sco-btn:hover {
+  background: #0066b3 !important;
+  color: #fff !important;
+}
 
 @media (max-width: 1140px) {
   .sco-shell { grid-template-columns: minmax(210px, 0.95fr) minmax(0, 1.7fr); }
@@ -430,8 +479,9 @@ body.sco-drawer-open { overflow: hidden; }
 }
 
 /* Preserve special card backgrounds */
+.sco-app .sco-topbar,
 .sco-app .sco-topbar:hover {
-  background: linear-gradient(180deg, #ffffff 0%, #fafdff 100%) !important;
+  display: none !important;
 }
 .sco-app .sco-login-required:hover {
   background: var(--sco-surface) !important;
@@ -500,14 +550,14 @@ body.sco-drawer-open { overflow: hidden; }
 
 /* --- Buttons --- */
 .sco-app .sco-btn:hover {
-  background: var(--sco-surface) !important;
-  border-color: var(--sco-border) !important;
-  box-shadow: none !important;
-  color: var(--sco-text) !important;
+  background: var(--sco-primary-hover) !important;
+  border: none !important;
+  box-shadow: 0 2px 6px rgba(26,147,238,0.28) !important;
+  color: #fff !important;
 }
 .sco-app .sco-btn-primary:hover {
-  background: var(--sco-primary) !important;
-  border-color: var(--sco-primary) !important;
+  background: var(--sco-primary-hover) !important;
+  border: none !important;
   box-shadow: 0 2px 6px rgba(26,147,238,0.28) !important;
   color: #fff !important;
 }
@@ -572,11 +622,12 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-modal {
   position: relative;
   z-index: 9999;
-  width: min(1400px, 90vw);
+  width: 70vw;
+  max-width: 1400px;
   height: calc(100vh - 24px);
   margin: 12px auto;
   background: #fff;
-  border-radius: 0 0 26px 26px;
+  border-radius: 24px;
   border: 1px solid rgba(2, 6, 23, 0.08);
   box-shadow: 0 30px 80px -25px rgba(2, 6, 23, 0.35);
   display: grid;
@@ -687,7 +738,10 @@ body.sco-drawer-open { overflow: hidden; }
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 20px;
+  padding-top: 20px;
+  padding-bottom: 20px;
+  padding-left: 15%;
+  padding-right: 15%;
   background: radial-gradient(1200px 600px at 15% 0%, rgba(26, 147, 238, 0.12), transparent 55%), linear-gradient(180deg, #f6f8fb 0%, #ffffff 70%);
 }
 
@@ -756,7 +810,10 @@ body.admin-bar .sco-modal {
   }
 
   .sco-modal__canvas {
-    padding: 16px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    padding-left: 5%;
+    padding-right: 5%;
   }
 }
 
