@@ -3,11 +3,12 @@
   <?php if (!is_user_logged_in()) : ?>
     <section class="sco-login-required sco-card" aria-live="polite">
       <div class="sco-card-header">
-        <h2><?php echo esc_html__('Bitte einloggen', 'sprecher-coach-os'); ?></h2>
+        <h2><?php echo esc_html__('Willkommen zurück', 'sprecher-coach-os'); ?></h2>
       </div>
-      <p><?php echo esc_html__('Der Sprecher Coach speichert deinen Fortschritt – dafür brauchst du ein Konto.', 'sprecher-coach-os'); ?></p>
+      <p><?php echo esc_html__('Melde dich an, um deinen Fortschritt, Missionen und Daily Drills zu synchronisieren.', 'sprecher-coach-os'); ?></p>
       <div class="sco-login-form-wrap">
         <?php
+        // WordPress Standard-Login-Formular für sichere Ausgabe der Felder und Nonce.
         wp_login_form([
           'echo' => true,
           'remember' => true,
@@ -15,15 +16,14 @@
           'label_username' => __('E-Mail oder Benutzername', 'sprecher-coach-os'),
           'label_password' => __('Passwort', 'sprecher-coach-os'),
           'label_log_in' => __('Einloggen', 'sprecher-coach-os'),
-          'id_submit' => 'sco-login-submit',
         ]);
         ?>
       </div>
-      <div class="sco-actions">
-        <?php if (get_option('users_can_register')) : ?>
-          <a class="sco-btn sco-btn-primary" href="<?php echo esc_url(wp_registration_url()); ?>"><?php echo esc_html__('Konto erstellen', 'sprecher-coach-os'); ?></a>
-        <?php endif; ?>
-      </div>
+      <?php if (get_option('users_can_register')) : ?>
+        <p class="sco-login-register-link">
+          <a href="<?php echo esc_url(wp_registration_url()); ?>"><?php echo esc_html__('Noch kein Konto? Hier registrieren', 'sprecher-coach-os'); ?></a>
+        </p>
+      <?php endif; ?>
     </section>
   <?php else : ?>
     <section class="sco-card sco-status-inline" data-sco-status-pills>
