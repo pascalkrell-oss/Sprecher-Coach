@@ -9,6 +9,7 @@ class SCO_Shortcodes {
 
     public function register_shortcodes() {
         add_shortcode('sprecher_coach_app', [$this, 'render_app']);
+        add_shortcode('sprecher_coach_launcher', [$this, 'render_launcher']);
         add_action('wp_footer', [$this, 'enqueue_runtime_assets']);
     }
 
@@ -43,8 +44,12 @@ class SCO_Shortcodes {
         return home_url($request_uri);
     }
 
-    private function render_template($template) {
+    private function render_template($template, $data = []) {
         $this->needs_assets = true;
+        if (is_array($data) && !empty($data)) {
+            extract($data, EXTR_SKIP);
+        }
+
         ob_start();
         include SCO_PLUGIN_PATH . 'templates/' . $template . '.php';
         return ob_get_clean();
@@ -52,5 +57,22 @@ class SCO_Shortcodes {
 
     public function render_app() {
         return $this->render_template('app');
+    }
+
+    public function render_launcher($atts = []) {
+        $atts = shortcode_atts([
+            'label' => 'Sprecher Coach öffnen',
+            'style' => 'primary',
+            'auto_open' => '0',
+        ], $atts, 'sprecher_coach_launcher');
+
+        $style = sanitize_key((string) $atts['style']);
+        $button_class = $style === 'secondary' ? '' : 'sco-btn-primary';
+
+        return $this->render_template('launcher', [
+            'label' => sanitize_text_field((string) $atts['label']),
+            'button_class' => $button_class,
+            'auto_open' => ((string) $atts['auto_open'] === '1') ? '1' : '0',
+        ]);
     }
 }

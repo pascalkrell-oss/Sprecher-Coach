@@ -23,6 +23,11 @@ class SCO_API {
         register_rest_route('sco/v1', '/library/open', array_merge(['methods' => 'POST', 'callback' => [$this, 'library_open']], $auth));
         register_rest_route('sco/v1', '/library/add', array_merge(['methods' => 'POST', 'callback' => [$this, 'library_add']], $auth));
         register_rest_route('sco/v1', '/reset', array_merge(['methods' => 'POST', 'callback' => [$this, 'reset_coach']], $auth));
+        register_rest_route('sco/v1', '/app-html', [
+            'methods' => 'GET',
+            'callback' => [$this, 'app_html'],
+            'permission_callback' => '__return_true',
+        ]);
         register_rest_route('sco/v1', '/admin/test-plan', [
             'methods' => 'POST',
             'callback' => [$this, 'admin_test_plan'],
@@ -47,6 +52,28 @@ class SCO_API {
         }
 
         return true;
+    }
+
+    public function app_html(WP_REST_Request $request) {
+        $nonce = (string) $request->get_header('X-WP-Nonce');
+        if (!$nonce || !wp_verify_nonce($nonce, 'wp_rest')) {
+            return new WP_Error('sco_invalid_nonce', __('Ungültige Anfrage.', 'sprecher-coach-os'), ['status' => 403]);
+        }
+
+        ob_start();
+        include SCO_PLUGIN_PATH . 'templates/app.php';
+        $html = ob_get_clean();
+
+        $response = rest_ensure_response([
+            'html' => wp_kses_post($html),
+        ]);
+
+        if ($response instanceof WP_REST_Response) {
+            $response->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+            $response->header('Pragma', 'no-cache');
+        }
+
+        return $response;
     }
 
     public function dashboard() {
