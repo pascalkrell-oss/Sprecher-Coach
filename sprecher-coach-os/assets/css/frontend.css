@@ -5,7 +5,7 @@
 }
 
 .sprecher-coach-os-wrapper {
-  font-family: 'Rubik', sans-serif;
+  font-family: 'Rubik', sans-serif !important;
 }
 
 .sco-app,
@@ -30,7 +30,7 @@
   --sco-gap-4: 24px;
   --sco-gap-5: 32px;
   --sco-transition: all .35s cubic-bezier(0.16, 1, 0.3, 1);
-  font-family: 'Rubik', sans-serif;
+  font-family: 'Rubik', sans-serif !important;
   color: var(--sco-text);
   background: transparent;
   padding: clamp(18px, 3vw, 36px);
@@ -58,19 +58,20 @@ body.sco-drawer-open { overflow: hidden; }
 }
 
 .sco-app ul li {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  list-style: none;
+  position: relative;
+  padding-left: 30px;
 }
 
 .sco-modal__canvas ul li::before,
 .sco-drawer__body ul li::before,
 .sco-app ul li::before {
   content: '';
-  flex-shrink: 0;
+  position: absolute;
+  left: 0;
+  top: 2px;
   width: 20px;
   height: 20px;
-  margin-top: 2px;
   background-color: #1a93ee;
   -webkit-mask-image: url('https://dev.pascal-krell.de/wp-content/uploads/2025/08/check-mark-icon.svg');
   mask-image: url('https://dev.pascal-krell.de/wp-content/uploads/2025/08/check-mark-icon.svg');
@@ -92,7 +93,12 @@ body.sco-drawer-open { overflow: hidden; }
 }
 
 .sco-card-header { margin-bottom: var(--sco-gap-4); padding-bottom: var(--sco-gap-3); border-bottom: 1px solid var(--sco-border); }
-.sco-topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--sco-gap-4); background: linear-gradient(180deg, #ffffff 0%, #fafdff 100%); }
+.sco-topbar { display: flex; justify-content: space-between; align-items: center; gap: var(--sco-gap-4); background: linear-gradient(180deg, #ffffff 0%, #fafdff 100%); }
+.sco-topbar {
+  min-height: 0;
+  padding-top: clamp(18px, 2vw, 24px);
+  padding-bottom: clamp(18px, 2vw, 24px);
+}
 .sco-kicker { margin: 0 0 var(--sco-gap-1); color: var(--sco-muted); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; font-weight: 600; }
 .sco-pill-row { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--sco-gap-2); }
 .sco-pill { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: var(--sco-pill); border: 1px solid rgba(26, 147, 238, 0.24); background: rgba(26, 147, 238, 0.12); color: var(--sco-primary); font-size: 13px; font-weight: 600; }
@@ -160,6 +166,7 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-lock { margin-top: var(--sco-gap-2); display: inline-flex; align-items: center; padding: 6px 12px; border-radius: var(--sco-pill); border: 1px solid rgba(26, 147, 238, 0.24); background: rgba(26, 147, 238, 0.12); color: var(--sco-primary); font-size: 12.5px; font-weight: 600; }
 
 .sco-drawer-overlay { position: fixed; inset: 0; background: rgba(15, 20, 26, 0.25); backdrop-filter: blur(4px); z-index: 10005; }
+.sco-drawer-overlay { overflow: hidden; }
 .sco-drawer-overlay[hidden] { display: none; }
 .sco-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 92vw); background: #fff; border-left: 1px solid var(--sco-border); border-radius: 18px 0 0 18px; box-shadow: -20px 0 60px rgba(2, 6, 23, 0.18); z-index: 10010; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; transform: translateX(110%); transition: transform .32s cubic-bezier(0.16, 1, 0.3, 1); }
 .sco-drawer[hidden] { display: none; }
@@ -168,6 +175,13 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-drawer__title { display: flex; align-items: center; gap: 10px; }
 .sco-drawer__icon { width: 30px; height: 30px; border-radius: 50%; background: rgba(26, 147, 238, 0.12); color: var(--sco-primary); display: inline-flex; align-items: center; justify-content: center; }
 .sco-drawer__body { padding: 32px 24px; overflow: auto; }
+.sco-drawer__body,
+.sco-drawer,
+.sco-modal,
+.sco-modal__body,
+.sco-modal__canvas {
+  font-family: 'Rubik', sans-serif !important;
+}
 .sco-drawer__foot { padding: 16px 24px 20px; border-top: 1px solid var(--sco-border); display: none; gap: 10px; background: #fff; }
 .sco-drawer__foot.has-content { display: flex; flex-wrap: wrap; }
 .sco-icon-btn { width: 36px; height: 36px; border-radius: 12px; border: 1px solid var(--sco-border); background: #fff; color: var(--sco-muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: var(--sco-transition); }
@@ -316,25 +330,47 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-mission-step-actions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   align-items: stretch;
   margin-top: 24px;
   position: relative;
   z-index: 2;
+  width: 100%;
 }
 
 .sco-actions--stack {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   align-items: stretch;
+  width: 100%;
+}
+
+.sco-drawer__body .sco-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
 }
 
 .sco-mission-step-actions .sco-btn,
-.sco-drawer .sco-btn {
+.sco-drawer .sco-btn,
+.sco-drawer__body .sco-actions a,
+.sco-drawer__body .sco-actions button {
   position: relative;
   z-index: 3;
   cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 24px;
+  border-radius: 9999px;
+  background-color: #1a93ee;
+  color: #fff;
+  text-decoration: none;
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
 }
 
 .sco-mission-step-actions input[type='text'],
@@ -352,6 +388,7 @@ body.sco-drawer-open { overflow: hidden; }
   padding: 10px 14px;
   width: 100%;
   box-sizing: border-box;
+  margin: 0;
 }
 
 .sco-mission-step-hint {
@@ -678,6 +715,7 @@ body.sco-drawer-open { overflow: hidden; }
   padding: 0;
   opacity: 0;
   transition: opacity .4s ease-in-out;
+  overflow: hidden;
 }
 
 .sco-modal-overlay.is-open,
@@ -694,8 +732,9 @@ body.sco-drawer-open { overflow: hidden; }
   z-index: 9999;
   width: 90vw;
   max-width: none;
-  height: calc(100vh - 24px);
-  margin: 12px auto;
+  max-height: 90vh;
+  height: auto;
+  margin: 5vh auto;
   background: #fff;
   border-radius: 24px;
   border: 1px solid rgba(2, 6, 23, 0.08);
@@ -897,8 +936,9 @@ body.admin-bar .sco-modal {
 
   .sco-modal {
     width: 90vw;
-    height: 100vh;
-    margin: 0 auto;
+    max-height: 90vh;
+    height: auto;
+    margin: 5vh auto;
     border-radius: 0;
   }
 
