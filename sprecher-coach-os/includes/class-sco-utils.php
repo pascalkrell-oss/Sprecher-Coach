@@ -5,6 +5,40 @@ if (!defined('ABSPATH')) {
 }
 
 class SCO_Utils {
+    public static function label_maps() {
+        return [
+            'skills' => [
+                'hoerbuch' => 'Hörbuch',
+                'doku' => 'Dokumentarfilm',
+                'erklaervideo' => 'Erklärvideo',
+                'elearning' => 'E-Learning',
+                'telefon' => 'Telefonansagen',
+                'imagefilm' => 'Imagefilm / Produktvideo',
+                'werbung' => 'Werbung',
+                'all' => 'Alle Skills',
+            ],
+            'categories' => [
+                'warmup' => 'Warmups',
+                'tongue_twister' => 'Zungenbrecher',
+                'script' => 'Skripte',
+                'business' => 'Business',
+                'random' => 'Zufällig',
+            ],
+        ];
+    }
+
+    public static function label_skill($key) {
+        $maps = self::label_maps();
+        $label = $maps['skills'][$key] ?? $key;
+        return (string) apply_filters('sco_label_skill', $label, $key);
+    }
+
+    public static function label_category($key) {
+        $maps = self::label_maps();
+        $label = $maps['categories'][$key] ?? $key;
+        return (string) apply_filters('sco_label_category', $label, $key);
+    }
+
     public static function get_settings() {
         $defaults = [
             'accent_color' => '#1a93ee',
@@ -123,4 +157,12 @@ class SCO_Utils {
     public static function level_from_xp($xp) {
         return max(1, (int) floor($xp / 120) + 1);
     }
+}
+
+function sco_label_skill($key) {
+    return SCO_Utils::label_skill(sanitize_key((string) $key));
+}
+
+function sco_label_category($key) {
+    return SCO_Utils::label_category(sanitize_key((string) $key));
 }
