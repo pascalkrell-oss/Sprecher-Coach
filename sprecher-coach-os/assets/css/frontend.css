@@ -50,11 +50,10 @@ body.sco-drawer-open { overflow: hidden; }
 
 .sco-card:hover,
 .sco-library-category:hover,
-.sco-btn:hover,
 .sco-toggle-tile:hover {
-  border-color: rgba(26, 147, 238, 0.45);
-  box-shadow: 0 8px 20px rgba(2, 6, 23, 0.08);
-  background: #fbfdff;
+  border-color: inherit;
+  box-shadow: inherit;
+  background: inherit;
 }
 
 .sco-card-header { margin-bottom: var(--sco-gap-4); padding-bottom: var(--sco-gap-3); border-bottom: 1px solid var(--sco-border); }
@@ -240,4 +239,64 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-toast.is-visible {
   opacity: 1;
   transform: translateY(0);
+}
+
+
+.sco-btn:hover,
+.sco-btn-primary:hover {
+  color: #fff;
+}
+
+.sco-btn:not(.sco-btn-primary):hover {
+  background: #0f172a;
+  border-color: #0f172a;
+}
+
+.sco-btn-danger {
+  background: #b42318;
+  border-color: #b42318;
+  color: #fff;
+}
+
+.sco-btn-danger:hover {
+  background: #912018;
+  border-color: #912018;
+  color: #fff;
+}
+
+.sco-admin-testmode {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sco-segmented {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.sco-segmented .sco-btn.is-active {
+  background: var(--sco-primary);
+  border-color: var(--sco-primary);
+  color: #fff;
+}
+
+.sco-tool-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.sco-tool-form label { display: grid; gap: 6px; }
+.sco-tool-form input, .sco-tool-form select, .sco-tool-form textarea { border: 1px solid var(--sco-border); border-radius: 10px; padding: 10px; }
+.sco-tool-output { margin-top: 14px; border: 1px solid var(--sco-border); border-radius: 14px; padding: 14px; background: var(--sco-surface-2); }
+.sco-tool-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 12px 0; }
+.sco-teleprompter-view { margin-top: 12px; border: 1px solid var(--sco-border); border-radius: 14px; background: #0f172a; color: #fff; min-height: 240px; max-height: 360px; overflow: auto; position: relative; }
+.sco-teleprompter-content { white-space: pre-wrap; padding: 28px; }
+.sco-teleprompter-focus { position: absolute; left: 0; right: 0; top: 40%; height: 20%; border-top: 1px solid rgba(255,255,255,.4); border-bottom: 1px solid rgba(255,255,255,.4); pointer-events: none; }
+
+@media (max-width: 860px) {
+  .sco-tool-form, .sco-tool-controls, .sco-admin-testmode { grid-template-columns: 1fr; display: grid; }
 }

@@ -11,6 +11,16 @@ class SCO_Permissions {
             return false;
         }
 
+        if (user_can($user_id, 'manage_options')) {
+            $test_plan = sanitize_key((string) get_user_meta($user_id, 'sco_test_plan', true));
+            if ($test_plan === 'premium') {
+                return true;
+            }
+            if ($test_plan === 'free') {
+                return false;
+            }
+        }
+
         if (self::has_active_yith_membership($user_id)) {
             return true;
         }

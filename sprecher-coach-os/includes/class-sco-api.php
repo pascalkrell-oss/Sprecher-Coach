@@ -21,11 +21,29 @@ class SCO_API {
         register_rest_route('sco/v1', '/drills/alt-text', array_merge(['methods' => 'GET', 'callback' => [$this, 'alt_text']], $auth));
         register_rest_route('sco/v1', '/library', array_merge(['methods' => 'GET', 'callback' => [$this, 'library']], $auth));
         register_rest_route('sco/v1', '/library/open', array_merge(['methods' => 'POST', 'callback' => [$this, 'library_open']], $auth));
+        register_rest_route('sco/v1', '/library/add', array_merge(['methods' => 'POST', 'callback' => [$this, 'library_add']], $auth));
+        register_rest_route('sco/v1', '/reset', array_merge(['methods' => 'POST', 'callback' => [$this, 'reset_coach']], $auth));
+        register_rest_route('sco/v1', '/admin/test-plan', [
+            'methods' => 'POST',
+            'callback' => [$this, 'admin_test_plan'],
+            'permission_callback' => [$this, 'must_manage_options'],
+        ]);
     }
 
     public function must_be_logged_in() {
         if (!is_user_logged_in()) {
             return new WP_Error('sco_auth_required', __('Bitte einloggen.', 'sprecher-coach-os'), ['status' => 401]);
+        }
+
+        return true;
+    }
+
+    public function must_manage_options() {
+        if (!is_user_logged_in()) {
+            return new WP_Error('sco_auth_required', __('Bitte einloggen.', 'sprecher-coach-os'), ['status' => 401]);
+        }
+        if (!current_user_can('manage_options')) {
+            return new WP_Error('sco_forbidden', __('Keine Berechtigung.', 'sprecher-coach-os'), ['status' => 403]);
         }
 
         return true;
@@ -559,5 +577,98 @@ class SCO_API {
             'daily_limit' => $daily_limit,
             'limit_reached' => !$premium && $count >= $daily_limit,
         ]);
+    }
+
+    public function library_add(WP_REST_Request $request) {
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        if (!SCO_Permissions::is_premium_user($user_id)) {
+            return new WP_REST_Response(['message' => __('Nur für Premium verfügbar.', 'sprecher-coach-os')], 403);
+        }
+
+        $title = sanitize_text_field((string) $request->get_param('title'));
+        $content = sanitize_textarea_field((string) $request->get_param('content'));
+        $skill_key = sanitize_key((string) $request->get_param('skill_key'));
+        $type = sanitize_key((string) $request->get_param('type')) ?: 'script';
+
+        if ($title === '' || $content === '') {
+            return new WP_REST_Response(['message' => __('Titel und Inhalt sind erforderlich.', 'sprecher-coach-os')], 400);
+        }
+
+        $wpdb->insert(SCO_DB::table('library'), [
+            'category_key' => $type,
+            'skill_key' => $skill_key,
+            'difficulty' => 1,
+            'duration_min' => 1,
+            'title' => $title,
+            'content' => $content,
+            'is_premium' => 0,
+        ]);
+
+        return rest_ensure_response(['success' => true, 'id' => (int) $wpdb->insert_id]);
+    }
+
+    public function reset_coach() {
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $week_monday = SCO_Utils::week_monday();
+
+        $wpdb->query('START TRANSACTION');
+        try {
+            $wpdb->replace(SCO_DB::table('user_progress'), [
+                'user_id' => $user_id,
+                'xp_total' => 0,
+                'streak' => 0,
+                'last_completed_date' => null,
+                'weekly_count' => 0,
+                'weekly_reset_date' => $week_monday,
+                'preferred_skill' => 'werbung',
+                'updated_at' => current_time('mysql'),
+            ]);
+
+            $wpdb->delete(SCO_DB::table('user_skill_progress'), ['user_id' => $user_id], ['%d']);
+            $wpdb->delete(SCO_DB::table('user_completions'), ['user_id' => $user_id], ['%d']);
+            $wpdb->delete(SCO_DB::table('user_mission_progress'), ['user_id' => $user_id], ['%d']);
+            $wpdb->delete(SCO_DB::table('user_mission_steps'), ['user_id' => $user_id], ['%d']);
+            $wpdb->delete(SCO_DB::table('user_library_opens'), ['user_id' => $user_id], ['%d']);
+
+            $wpdb->query('COMMIT');
+        } catch (Throwable $error) {
+            $wpdb->query('ROLLBACK');
+            return new WP_REST_Response(['message' => __('Zurücksetzen fehlgeschlagen.', 'sprecher-coach-os')], 500);
+        }
+
+        return rest_ensure_response([
+            'success' => true,
+            'progress' => [
+                'xp_total' => 0,
+                'streak' => 0,
+                'last_completed_date' => null,
+                'weekly_count' => 0,
+                'weekly_goal' => (int) SCO_Utils::get_settings()['weekly_goal'],
+                'level' => 1,
+            ],
+        ]);
+    }
+
+    public function admin_test_plan(WP_REST_Request $request) {
+        $user_id = get_current_user_id();
+        $plan = sanitize_key((string) $request->get_param('plan'));
+        $allowed = ['free', 'premium', 'off'];
+        if (!in_array($plan, $allowed, true)) {
+            return new WP_REST_Response(['message' => __('Ungültiger Plan.', 'sprecher-coach-os')], 400);
+        }
+
+        if ($plan === 'off') {
+            delete_user_meta($user_id, 'sco_test_plan');
+            $saved = '';
+        } else {
+            update_user_meta($user_id, 'sco_test_plan', $plan);
+            $saved = $plan;
+        }
+
+        return rest_ensure_response(['success' => true, 'plan' => $saved]);
     }
 }
