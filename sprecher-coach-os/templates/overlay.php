@@ -4,7 +4,7 @@
   <div class="sco-modal" role="dialog" aria-modal="true" aria-label="Sprecher Coach">
     <div class="sco-modal__head">
       <div class="sco-modal__title">
-        <span class="sco-modal__brand"><?php echo esc_html__('Sprecher Coach', 'sprecher-coach-os'); ?></span>
+        <span class="sco-modal__brand"><?php echo esc_html__('Sprecher Coach OS', 'sprecher-coach-os'); ?></span>
         <span class="sco-modal__hint"><?php echo esc_html__('Web-App Modus', 'sprecher-coach-os'); ?></span>
       </div>
       <?php if (is_user_logged_in() && current_user_can('manage_options')) : ?>

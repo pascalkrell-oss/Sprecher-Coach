@@ -34,14 +34,6 @@
       </div>
     </section>
 
-    <section class="sco-card sco-quick-actions" aria-label="Quick Actions">
-      <button type="button" class="sco-btn" data-sco-quick-action="daily"><?php echo esc_html__('Tagesdrill', 'sprecher-coach-os'); ?></button>
-      <button type="button" class="sco-btn" data-sco-quick-action="teleprompter"><?php echo esc_html__('Teleprompter', 'sprecher-coach-os'); ?></button>
-      <button type="button" class="sco-btn" data-sco-quick-action="demo"><?php echo esc_html__('Demo-Text', 'sprecher-coach-os'); ?></button>
-      <button type="button" class="sco-btn" data-sco-quick-action="mission"><?php echo esc_html__('Mission', 'sprecher-coach-os'); ?></button>
-      <button type="button" class="sco-btn" data-sco-command-open><i class="fa-solid fa-terminal" aria-hidden="true"></i><?php echo esc_html__('Cmd + K', 'sprecher-coach-os'); ?></button>
-    </section>
-
     <div class="sco-shell">
       <aside class="sco-nav sco-card">
         <div class="sco-card-header">

@@ -40,6 +40,37 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-app p { margin: 0; }
 .sco-muted { color: var(--sco-muted); }
 
+
+.sco-app ul {
+  list-style: none;
+  margin: 0;
+  padding-left: 0;
+}
+
+.sco-app ul li {
+  position: relative;
+  padding-left: 28px;
+}
+
+.sco-app ul li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.5em;
+  width: 16px;
+  height: 16px;
+  background-color: #1a93ee;
+  -webkit-mask-image: url('https://dev.pascal-krell.de/wp-content/uploads/2025/08/check-mark-icon.svg');
+  mask-image: url('https://dev.pascal-krell.de/wp-content/uploads/2025/08/check-mark-icon.svg');
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  transform: translateY(-50%);
+}
+
 .sco-card {
   background: var(--sco-surface);
   border: 1px solid var(--sco-border);
@@ -210,26 +241,11 @@ body.sco-drawer-open { overflow: hidden; }
 }
 
 .sco-mission-task-list {
-  list-style: none;
   margin: 8px 0 0;
-  padding-left: 0;
 }
 
 .sco-mission-task-list li {
-  position: relative;
-  padding-left: 18px;
   margin-bottom: 8px;
-}
-
-.sco-mission-task-list li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.62em;
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--brand-color, #1273EB);
 }
 
 /* Mission drawer: modern spacing + hierarchy between day blocks. */
@@ -605,7 +621,7 @@ body.sco-drawer-open { overflow: hidden; }
   z-index: 9998;
   background: rgba(15, 20, 26, 0.22);
   backdrop-filter: blur(8px);
-  padding: 0 10px;
+  padding: 0;
   opacity: 0;
   transition: opacity .4s ease-in-out;
 }
@@ -622,8 +638,8 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-modal {
   position: relative;
   z-index: 9999;
-  width: 70vw;
-  max-width: 1400px;
+  width: 90vw;
+  max-width: none;
   height: calc(100vh - 24px);
   margin: 12px auto;
   background: #fff;
@@ -722,13 +738,20 @@ body.sco-drawer-open { overflow: hidden; }
   border-color: rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.9);
+  transition: color 0.3s ease, transform 0.3s ease, opacity 0.3s ease;
+}
+
+.sco-modal__close:hover {
+  color: #1a93ee;
+  opacity: 0.92;
+  transform: scale(1.06) rotate(6deg);
 }
 
 .sco-modal__body {
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  padding: 0;
+  padding: 0 5%;
   display: flex;
 }
 
@@ -740,8 +763,8 @@ body.sco-drawer-open { overflow: hidden; }
   overflow-x: hidden;
   padding-top: 20px;
   padding-bottom: 20px;
-  padding-left: 15%;
-  padding-right: 15%;
+  padding-left: 0;
+  padding-right: 0;
   background: radial-gradient(1200px 600px at 15% 0%, rgba(26, 147, 238, 0.12), transparent 55%), linear-gradient(180deg, #f6f8fb 0%, #ffffff 70%);
 }
 
@@ -803,17 +826,17 @@ body.admin-bar .sco-modal {
   }
 
   .sco-modal {
-    width: 100vw;
+    width: 90vw;
     height: 100vh;
-    margin: 0;
+    margin: 0 auto;
     border-radius: 0;
   }
 
   .sco-modal__canvas {
     padding-top: 16px;
     padding-bottom: 16px;
-    padding-left: 5%;
-    padding-right: 5%;
+    padding-left: 0;
+    padding-right: 0;
   }
 }
 
