@@ -27,6 +27,7 @@
   border-radius: var(--sco-radius);
   max-width: 1240px;
   margin: 0 auto;
+  position: relative;
 }
 
 body.sco-drawer-open { overflow: hidden; }
@@ -111,9 +112,9 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-locked { opacity: .75; }
 .sco-lock { margin-top: var(--sco-gap-2); display: inline-flex; align-items: center; padding: 6px 12px; border-radius: var(--sco-pill); border: 1px solid rgba(26, 147, 238, 0.24); background: rgba(26, 147, 238, 0.12); color: var(--sco-primary); font-size: 12.5px; font-weight: 600; }
 
-.sco-overlay { position: fixed; inset: 0; background: rgba(15, 20, 26, 0.35); backdrop-filter: blur(6px); z-index: 9998; }
+.sco-overlay { position: absolute; inset: 0; background: rgba(15, 20, 26, 0.35); backdrop-filter: blur(6px); z-index: 10000; }
 .sco-overlay[hidden] { display: none; }
-.sco-drawer { position: fixed; right: 20px; top: 20px; bottom: 20px; width: min(520px, calc(100vw - 40px)); background: #fff; border: 1px solid rgba(15, 20, 26, 0.08); border-radius: 20px; box-shadow: 0 32px 60px rgba(15, 20, 26, 0.24); z-index: 9999; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; opacity: 0; pointer-events: none; transform: translateX(24px); transition: var(--sco-transition); }
+.sco-drawer { position: absolute; right: 20px; top: 20px; bottom: 20px; width: min(520px, calc(100% - 40px)); background: #fff; border: 1px solid rgba(15, 20, 26, 0.08); border-radius: 20px; box-shadow: 0 32px 60px rgba(15, 20, 26, 0.24); z-index: 10010; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; opacity: 0; pointer-events: none; transform: translateX(24px); transition: var(--sco-transition); }
 .sco-drawer.is-open { opacity: 1; pointer-events: all; transform: translateX(0); }
 .sco-drawer__head { padding: 18px 22px; border-bottom: 1px solid var(--sco-border); display: flex; justify-content: space-between; align-items: center; gap: 14px; position: sticky; top: 0; background: #fff; border-radius: 20px 20px 0 0; }
 .sco-drawer__title { display: flex; align-items: center; gap: 10px; }
@@ -458,7 +459,7 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 10030;
+  z-index: 9998;
   background: rgba(15, 20, 26, 0.35);
   backdrop-filter: blur(8px);
   padding: 0 20px;
@@ -469,6 +470,8 @@ body.sco-drawer-open { overflow: hidden; }
 }
 
 .sco-modal {
+  position: relative;
+  z-index: 9999;
   width: min(1500px, calc(100vw - 40px));
   height: calc(100vh - 40px);
   margin: 20px auto;
@@ -560,30 +563,57 @@ body.sco-drawer-open { overflow: hidden; }
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
 }
 
-.sco-command-palette {
-  position: fixed;
+ .sco-cmdk {
+  position: absolute;
   inset: 0;
   z-index: 10020;
   display: grid;
   place-items: center;
-  background: rgba(15, 23, 42, 0.45);
   padding: 24px;
 }
 
-.sco-command-palette__surface {
-  width: min(640px, 100%);
-  background: var(--sco-surface);
-  border-radius: 16px;
-  border: 1px solid var(--sco-border);
-  padding: 12px;
+.sco-cmdk[hidden] {
+  display: none;
 }
 
-.sco-command-palette__list {
-  margin: 10px 0 0;
-  padding: 0;
-  list-style: none;
+.sco-cmdk__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.sco-cmdk__panel {
+  position: relative;
+  z-index: 1;
+  width: min(720px, calc(100% - 16px));
+  background: var(--sco-surface);
+  border: 1px solid var(--sco-border);
+  border-radius: 18px;
+  box-shadow: var(--sco-shadow-2);
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.sco-cmdk__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.sco-cmdk__input {
+  min-height: 44px;
+  border: 1px solid var(--sco-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.sco-cmdk__list {
   display: grid;
   gap: 6px;
+  max-height: min(50vh, 340px);
+  overflow: auto;
 }
 
 .sco-command-item {
@@ -631,8 +661,19 @@ body.sco-drawer-open { overflow: hidden; }
   font-size: 13px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1023px) {
   .sco-split-layout.is-split {
     grid-template-columns: 1fr;
   }
 }
+
+.sco-tools-panel.is-teleprompter-fullscreen {
+  position: absolute;
+  inset: 0;
+  z-index: 10015;
+  background: var(--sco-bg);
+  padding: 16px;
+  overflow: auto;
+}
+
+.sco-toast { z-index: 10030; }

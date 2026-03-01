@@ -5,6 +5,11 @@
   const ACTIVE_TAB_KEY = 'sco_active_tab';
   const SPLIT_VIEW_KEY = 'sco_split_view';
 
+  const scoIsOverlayOpen = () => {
+    const overlay = document.querySelector('#scoCoachOverlay');
+    return Boolean(overlay && !overlay.hidden);
+  };
+
   const initCoachApp = (root) => {
     if (!root || root.dataset.scoAppInitialized === '1' || !root.querySelector('.sco-shell')) return;
     root.dataset.scoAppInitialized = '1';
@@ -28,7 +33,7 @@
     premium: false,
     activeLibraryCategory: 'warmup',
     generatedTool: null,
-    teleprompter: { running: false, raf: null, offset: 0, lastTs: 0 },
+    teleprompter: { running: false, raf: null, offset: 0, lastTs: 0, fullscreen: false },
     notesDraft: { better_today: '', focus_tomorrow: '' },
   };
 
@@ -113,11 +118,9 @@
 
     closeBtn?.addEventListener('click', closeDrawer);
     overlay?.addEventListener('click', closeDrawer);
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && panel?.classList.contains('is-open')) closeDrawer();
-    });
+    const isOpen = () => Boolean(panel?.classList.contains('is-open'));
 
-    return { openDrawer, closeDrawer };
+    return { openDrawer, closeDrawer, isOpen };
   })();
 
   const skillLabel = (key) => labels.skills?.[key] || key;
@@ -190,70 +193,61 @@
     }
   };
 
-  const bindQuickActions = () => {
-    root.querySelectorAll('[data-sco-quick-action]').forEach((button) => {
-      button.addEventListener('click', () => runQuickAction(button.dataset.scoQuickAction));
-    });
-  };
+  const bindQuickActions = () => {};
 
-  const bindSwitchTabs = (scope = root) => {
-    scope.querySelectorAll('[data-sco-switch-tab]').forEach((button) => {
-      button.addEventListener('click', (event) => {
-        event.preventDefault();
-        setTab(button.dataset.scoSwitchTab);
-      });
-    });
-  };
+  const bindSwitchTabs = () => {};
 
   const initTabs = () => {
-    root.querySelectorAll('[data-tab]').forEach((button) => button.addEventListener('click', () => setTab(button.dataset.tab)));
-    bindSwitchTabs(root);
     const initial = (window.location.hash || '').replace('#', '') || window.localStorage.getItem(ACTIVE_TAB_KEY) || window.localStorage.getItem('scoActiveTab') || 'today';
     setTab(initial);
   };
 
   const bindCommandPalette = () => {
-    const modal = root.querySelector('[data-sco-command-palette]');
+    const modal = root.querySelector('[data-sco-cmdk]');
+    const panel = modal?.querySelector('.sco-cmdk__panel');
     const input = modal?.querySelector('[data-sco-command-input]');
     const list = modal?.querySelector('[data-sco-command-results]');
-    if (!modal || !input || !list) return;
+    const closeBtn = modal?.querySelector('.sco-cmdk__close');
+    const backdrop = modal?.querySelector('.sco-cmdk__backdrop');
+    if (!modal || !panel || !input || !list) return { open: () => {}, close: () => {}, isOpen: () => false };
 
     const commands = [
       { label: 'Heute öffnen', action: () => setTab('today') },
       { label: 'Daily Drill starten', action: () => setTab('daily') },
       { label: 'Mission fortsetzen', action: () => gotoMission() },
-      { label: 'Demo Text Generator', action: () => { setTab('tools'); setActiveToolPanel('demo'); } },
-      { label: 'Teleprompter', action: () => { setTab('tools'); setActiveToolPanel('teleprompter'); } },
-      { label: 'Bibliothek: Skripte', action: () => { setTab('library'); root.querySelector('[data-library-category="script"]')?.click(); } },
-      { label: 'Coach zurücksetzen', action: () => root.querySelector('[data-sco-reset-coach]')?.click() },
+      { label: 'Tools → Demo Text Generator', action: () => { setTab('tools'); setActiveToolPanel('demo'); } },
+      { label: 'Tools → Teleprompter', action: () => { setTab('tools'); setActiveToolPanel('teleprompter'); } },
+      { label: 'Bibliothek → Skripte', action: () => { setTab('library'); root.querySelector('[data-library-category="script"]')?.click(); } },
+      { label: 'Fortschritt öffnen', action: () => setTab('progress') },
+      { label: 'Coach zurücksetzen', action: () => { setTab('progress'); root.querySelector('[data-sco-reset-coach]')?.focus(); } },
     ];
-    let activeIndex = 0;
 
+    let activeIndex = 0;
+    let filtered = commands;
+
+    const isOpen = () => !modal.hidden;
     const close = () => {
       modal.hidden = true;
       modal.setAttribute('aria-hidden', 'true');
       input.value = '';
+      filtered = commands;
     };
-
     const run = (idx) => {
-      const command = commands[idx];
-      if (!command) return;
+      const cmd = filtered[idx];
+      if (!cmd) return;
       close();
-      command.action();
+      cmd.action();
     };
 
     const render = () => {
       const q = input.value.trim().toLowerCase();
-      const matches = commands.filter((item) => item.label.toLowerCase().includes(q));
-      if (activeIndex >= matches.length) activeIndex = 0;
-      list.innerHTML = matches.map((item, idx) => `<li><button type="button" class="sco-command-item ${idx === activeIndex ? 'is-active' : ''}" data-command-idx="${idx}" role="option" aria-selected="${idx === activeIndex ? 'true' : 'false'}">${esc(item.label)}</button></li>`).join('') || '<li class="sco-muted">Kein Treffer</li>';
-      list.querySelectorAll('[data-command-idx]').forEach((button) => {
-        button.addEventListener('click', () => run(Number(button.dataset.commandIdx)));
-      });
-      return matches;
+      filtered = commands.filter((item) => item.label.toLowerCase().includes(q));
+      if (activeIndex >= filtered.length) activeIndex = 0;
+      list.innerHTML = filtered.map((item, idx) => `<button type="button" class="sco-command-item ${idx === activeIndex ? 'is-active' : ''}" data-command-idx="${idx}" role="option" aria-selected="${idx === activeIndex ? 'true' : 'false'}">${esc(item.label)}</button>`).join('') || '<p class="sco-muted">Kein Treffer</p>';
     };
 
     const open = () => {
+      if (!scoIsOverlayOpen()) return;
       modal.hidden = false;
       modal.setAttribute('aria-hidden', 'false');
       activeIndex = 0;
@@ -261,43 +255,21 @@
       input.focus();
     };
 
-    root.querySelector('[data-sco-command-open]')?.addEventListener('click', open);
     modal.addEventListener('click', (event) => {
-      if (event.target === modal) close();
+      const button = event.target.closest('[data-command-idx]');
+      if (button) run(Number(button.dataset.commandIdx));
     });
-    input.addEventListener('input', () => {
-      activeIndex = 0;
-      render();
-    });
+    backdrop?.addEventListener('click', close);
+    closeBtn?.addEventListener('click', close);
+    input.addEventListener('input', () => { activeIndex = 0; render(); });
     input.addEventListener('keydown', (event) => {
-      const matches = render();
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        activeIndex = Math.min(activeIndex + 1, Math.max(matches.length - 1, 0));
-        render();
-      }
-      if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        activeIndex = Math.max(activeIndex - 1, 0);
-        render();
-      }
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        run(activeIndex);
-      }
-      if (event.key === 'Escape') close();
+      if (event.key === 'ArrowDown') { event.preventDefault(); activeIndex = Math.min(activeIndex + 1, Math.max(filtered.length - 1, 0)); render(); }
+      if (event.key === 'ArrowUp') { event.preventDefault(); activeIndex = Math.max(activeIndex - 1, 0); render(); }
+      if (event.key === 'Enter') { event.preventDefault(); run(activeIndex); }
+      if (event.key === 'Escape') { event.preventDefault(); close(); }
     });
 
-    document.addEventListener('keydown', (event) => {
-      const pressedK = event.key.toLowerCase() === 'k';
-      if ((event.ctrlKey || event.metaKey) && pressedK) {
-        event.preventDefault();
-        open();
-      }
-      if (event.key === 'Escape' && !modal.hidden) {
-        close();
-      }
-    });
+    return { open, close, isOpen };
   };
 
   const updateHeader = () => {
@@ -327,7 +299,13 @@
       <div class="sco-actions"><button type="button" class="sco-btn" data-sco-switch-tab="daily">Drill öffnen</button></div>`;
 
     root.querySelector('[data-sco-side-next]').textContent = `Heute empfohlen: ${drill.title}`;
-    bindSwitchTabs(root);
+
+    const planCard = root.querySelector('[data-sco-plan-card]');
+    if (planCard) {
+      const plan = state.dashboard.adaptive_plan || { focus: [] };
+      const slots = plan.focus || [];
+      planCard.innerHTML = `<div class="sco-card-header"><h3>Dein Plan</h3></div><ul>${slots.map((item) => `<li>${esc(item)}</li>`).join('')}</ul><p class="sco-muted">Heute · Morgen · Übermorgen</p>`;
+    }
   };
 
   const updateCompleteState = () => {
@@ -428,7 +406,7 @@
         notesPanel.querySelector('[data-sco-note-save]')?.addEventListener('click', async () => {
           const better = notesPanel.querySelector('[data-sco-note-better]')?.value || '';
           const focus = notesPanel.querySelector('[data-sco-note-focus]')?.value || '';
-          await api('notes', { method: 'POST', body: JSON.stringify({ drill_id: Number(state.drill.id), better_today: better, focus_tomorrow: focus }) });
+          await api('notes/save', { method: 'POST', body: JSON.stringify({ drill_id: Number(state.drill.id), date: new Date().toISOString().slice(0, 10), better, focus }) });
           toast('Notiz gespeichert.');
           await loadDashboard();
           renderProgress();
@@ -700,7 +678,7 @@
       </div>
       <section class="sco-kpi-card sco-progress-section"><h4>Wochenrückblick</h4><p>Trainings diese Woche: <strong>${week.trainings_this_week}</strong></p><p>Trainingsserie (max): <strong>${week.streak_max}</strong></p><p>Top Skill: <strong>${esc(skillLabel(week.top_skill))}</strong></p><ul>${(week.insights || []).map((item) => `<li>${esc(item)}</li>`).join('')}</ul>${state.dashboard.premium ? '<p class="sco-muted">Premium: Verlauf und Vergleich aktiviert.</p>' : '<p class="sco-muted">Premium: Charts + Vergleich.</p>'}</section>
       <section class="sco-kpi-card sco-progress-section"><h4>Dein Plan</h4><ul>${(plan.focus || []).map((item) => `<li>${esc(item)}</li>`).join('')}</ul>${state.dashboard.premium ? '<p class="sco-muted">Premium nutzt zusätzliche Personalisierung und mehr Slots.</p>' : ''}</section>
-      <section class="sco-kpi-card sco-progress-section"><h4>Letzte 7 Session Notes</h4>${notes.length ? notes.map((item) => `<article class="sco-note-item"><small>${esc(item.date || '')}</small><p><strong>Heute besser:</strong> ${esc(item.better_today || '-')}</p><p><strong>Morgen Fokus:</strong> ${esc(item.focus_tomorrow || '-')}</p></article>`).join('') : '<p class="sco-muted">Noch keine Notizen gespeichert.</p>'}</section>`;
+      <section class="sco-kpi-card sco-progress-section"><h4>Letzte 7 Session Notes</h4>${notes.length ? notes.map((item) => `<article class="sco-note-item"><small>${esc(item.date || '')}</small><p><strong>Heute besser:</strong> ${esc(item.better || item.better_today || '-')}</p><p><strong>Morgen Fokus:</strong> ${esc(item.focus || item.focus_tomorrow || '-')}</p></article>`).join('') : '<p class="sco-muted">Noch keine Notizen gespeichert.</p>'}</section>`;
   };
 
   const bindAdminTestPlan = () => {
@@ -735,9 +713,6 @@
   };
 
   const bindToolTabs = () => {
-    root.querySelectorAll('[data-tool-tab]').forEach((button) => {
-      button.addEventListener('click', () => setActiveToolPanel(button.dataset.toolTab));
-    });
     setActiveToolPanel(window.localStorage.getItem('sco_active_tool') || 'demo');
   };
 
@@ -816,7 +791,7 @@
     }
 
     if (tele) {
-      tele.innerHTML = `<div class="sco-card-header"><h3>Teleprompter</h3></div><div class="sco-actions" style="margin-top:0;"><button type="button" class="sco-btn" data-sco-split-toggle aria-pressed="false"><i class="fa-solid fa-columns" aria-hidden="true"></i>Split View</button></div><section class="sco-split-layout" data-sco-split-layout><div class="sco-split-layout__left"><textarea data-sco-teleprompter-text rows="10" placeholder="Text einfügen oder aus Bibliothek wählen"></textarea><div class="sco-teleprompter-view" data-sco-tp-view><div class="sco-teleprompter-content" data-sco-tp-content></div><div class="sco-teleprompter-focus" hidden></div></div></div><div class="sco-split-layout__right"><div class="sco-tool-controls"><label>Speed (WPM)<input type="range" min="80" max="220" value="130" data-sco-tp-speed></label><label>Font size<input type="range" min="18" max="56" value="32" data-sco-tp-font></label><label>Line height<input type="range" min="1.2" max="2" step="0.1" value="1.5" data-sco-tp-line></label><label><input type="checkbox" data-sco-tp-mirror> Mirror</label><label><input type="checkbox" data-sco-tp-focus> Focus mode</label></div><div class="sco-actions"><button class="sco-btn sco-btn-primary" type="button" data-sco-tp-start>Start</button><button class="sco-btn" type="button" data-sco-tp-pause>Pause</button><button class="sco-btn" type="button" data-sco-tp-reset>Reset</button><button class="sco-btn" type="button" data-sco-tp-library>Aus Bibliothek wählen</button><button class="sco-btn" type="button" data-sco-tp-from-generator>Aus Demo Generator übernehmen</button></div><div class="sco-mission-mini">Mission Kontext & Controls für den nächsten Take.</div></div></section>`;
+      tele.innerHTML = `<div class="sco-card-header"><h3>Teleprompter</h3></div><div class="sco-actions" style="margin-top:0;"><button type="button" class="sco-btn" data-sco-split-toggle aria-pressed="false"><i class="fa-solid fa-columns" aria-hidden="true"></i>Split View</button></div><section class="sco-split-layout" data-sco-split-layout><div class="sco-split-layout__left"><textarea data-sco-teleprompter-text rows="10" placeholder="Text einfügen oder aus Bibliothek wählen"></textarea><div class="sco-teleprompter-view" data-sco-tp-view><div class="sco-teleprompter-content" data-sco-tp-content></div><div class="sco-teleprompter-focus" hidden></div></div></div><div class="sco-split-layout__right"><div class="sco-tool-controls"><label>Speed (WPM)<input type="range" min="80" max="220" value="130" data-sco-tp-speed></label><label>Font size<input type="range" min="18" max="56" value="32" data-sco-tp-font></label><label>Line height<input type="range" min="1.2" max="2" step="0.1" value="1.5" data-sco-tp-line></label><label><input type="checkbox" data-sco-tp-mirror> Mirror</label><label><input type="checkbox" data-sco-tp-focus> Focus mode</label></div><div class="sco-actions"><button class="sco-btn sco-btn-primary" type="button" data-sco-tp-start>Start</button><button class="sco-btn" type="button" data-sco-tp-pause>Pause</button><button class="sco-btn" type="button" data-sco-tp-reset>Reset</button><button class="sco-btn" type="button" data-sco-tp-library>Aus Bibliothek wählen</button><button class="sco-btn" type="button" data-sco-tp-from-generator>Aus Demo Generator übernehmen</button><button class="sco-btn" type="button" data-sco-tp-fullscreen><i class="fa-solid fa-expand" aria-hidden="true"></i> Fokusansicht</button></div><div class="sco-mission-mini">Mission Kontext & Controls für den nächsten Take.</div></div></section>`;
       const textArea = tele.querySelector('[data-sco-teleprompter-text]');
       const content = tele.querySelector('[data-sco-tp-content]');
       const view = tele.querySelector('[data-sco-tp-view]');
@@ -853,6 +828,10 @@
       tele.querySelector('[data-sco-tp-start]').addEventListener('click', () => { if (state.teleprompter.running) return; state.teleprompter.running = true; state.teleprompter.lastTs = 0; state.teleprompter.raf = requestAnimationFrame(step); });
       tele.querySelector('[data-sco-tp-pause]').addEventListener('click', () => { state.teleprompter.running = false; if (state.teleprompter.raf) cancelAnimationFrame(state.teleprompter.raf); });
       tele.querySelector('[data-sco-tp-reset]').addEventListener('click', () => { state.teleprompter.running = false; if (state.teleprompter.raf) cancelAnimationFrame(state.teleprompter.raf); state.teleprompter.offset = 0; view.scrollTop = 0; });
+      tele.querySelector('[data-sco-tp-fullscreen]')?.addEventListener('click', () => {
+        state.teleprompter.fullscreen = !state.teleprompter.fullscreen;
+        tele.classList.toggle('is-teleprompter-fullscreen', state.teleprompter.fullscreen);
+      });
       tele.querySelector('[data-sco-tp-from-generator]').addEventListener('click', () => {
         if (!state.generatedTool?.text) {
           toast('Bitte zuerst im Demo Generator einen Text erzeugen.');
@@ -877,13 +856,45 @@
   };
 
   const init = async () => {
+    const commandPalette = bindCommandPalette();
+
+    root.addEventListener('click', (event) => {
+      const tabBtn = event.target.closest('[data-tab]');
+      if (tabBtn && root.contains(tabBtn)) setTab(tabBtn.dataset.tab);
+
+      const switchBtn = event.target.closest('[data-sco-switch-tab]');
+      if (switchBtn && root.contains(switchBtn)) { event.preventDefault(); setTab(switchBtn.dataset.scoSwitchTab); }
+
+      const quickBtn = event.target.closest('[data-sco-quick-action]');
+      if (quickBtn && root.contains(quickBtn)) runQuickAction(quickBtn.dataset.scoQuickAction);
+
+      const commandOpenBtn = event.target.closest('[data-sco-command-open]');
+      if (commandOpenBtn && root.contains(commandOpenBtn)) commandPalette.open();
+
+      const toolBtn = event.target.closest('[data-tool-tab]');
+      if (toolBtn && root.contains(toolBtn)) setActiveToolPanel(toolBtn.dataset.toolTab);
+    });
+
+    root.__scoLayerApi = {
+      closeCommandPaletteIfOpen: () => { if (commandPalette.isOpen()) { commandPalette.close(); return true; } return false; },
+      closeDrawerIfOpen: () => { if (drawer.isOpen()) { drawer.closeDrawer(); return true; } return false; },
+      closeTeleprompterFullscreenIfOpen: () => {
+        const tele = root.querySelector('[data-sco-tool-teleprompter]');
+        if (tele?.classList.contains('is-teleprompter-fullscreen')) {
+          tele.classList.remove('is-teleprompter-fullscreen');
+          state.teleprompter.fullscreen = false;
+          return true;
+        }
+        return false;
+      },
+    };
+
     initTabs();
     bindLibraryCategories();
     bindAdminTestPlan();
     bindCoachReset();
     bindToolTabs();
     bindQuickActions();
-    bindCommandPalette();
     await loadDashboard();
     updateHeader();
     renderToday();
@@ -944,7 +955,13 @@
     };
 
     const onEscape = (event) => {
-      if (event.key === 'Escape') closeCoachModal();
+      if (event.key !== 'Escape') return;
+      const appRoot = mount.querySelector('#sco-root');
+      const layers = appRoot?.__scoLayerApi;
+      if (layers?.closeCommandPaletteIfOpen?.()) { event.preventDefault(); return; }
+      if (layers?.closeDrawerIfOpen?.()) { event.preventDefault(); return; }
+      if (layers?.closeTeleprompterFullscreenIfOpen?.()) { event.preventDefault(); return; }
+      closeCoachModal();
     };
 
     const ensureAppLoaded = async () => {
@@ -974,6 +991,7 @@
       }
       document.addEventListener('keydown', trapFocus);
       document.addEventListener('keydown', onEscape);
+      document.dispatchEvent(new CustomEvent('sco:overlay:open'));
     };
 
     const closeCoachModal = () => {
@@ -983,6 +1001,7 @@
       document.body.style.overflow = '';
       document.removeEventListener('keydown', trapFocus);
       document.removeEventListener('keydown', onEscape);
+      document.dispatchEvent(new CustomEvent('sco:overlay:close'));
       if (lastActiveElement && typeof lastActiveElement.focus === 'function') lastActiveElement.focus();
     };
 
@@ -996,6 +1015,28 @@
       window.setTimeout(() => openCoachModal(), 60);
     }
   };
+
+
+  if (!window.__SCO_STAGE2_INIT__) {
+    window.__SCO_STAGE2_INIT__ = true;
+    let overlayHotkeysEnabled = false;
+    document.addEventListener('sco:overlay:open', () => { overlayHotkeysEnabled = true; });
+    document.addEventListener('sco:overlay:close', () => { overlayHotkeysEnabled = false; });
+    document.addEventListener('keydown', (event) => {
+      if (!overlayHotkeysEnabled || !scoIsOverlayOpen()) return;
+      const pressedK = event.key.toLowerCase() === 'k';
+      const target = event.target;
+      const isTyping = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable);
+      if ((event.ctrlKey || event.metaKey) && pressedK && !isTyping) {
+        const appRoot = document.querySelector('#scoCoachAppMount #sco-root');
+        const cmdkOpen = appRoot?.__scoLayerApi?.closeCommandPaletteIfOpen;
+        event.preventDefault();
+        if (cmdkOpen && !appRoot.__scoLayerApi.closeCommandPaletteIfOpen()) {
+          appRoot.querySelector('[data-sco-command-open]')?.click();
+        }
+      }
+    });
+  }
 
   initCoachAppsInScope(document);
   document.querySelectorAll('[data-sco-launcher]').forEach((launcher) => createModalController(launcher));
