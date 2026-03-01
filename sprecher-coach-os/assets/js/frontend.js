@@ -204,7 +204,17 @@
 
   const bindQuickActions = () => {};
 
-  const bindSwitchTabs = () => {};
+  const bindSwitchTabs = (scope = document) => {
+    scope.querySelectorAll('[data-sco-switch-tab]').forEach((button) => {
+      if (button.dataset.scoSwitchBound === '1') return;
+      button.dataset.scoSwitchBound = '1';
+      button.style.cursor = 'pointer';
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        setTab(button.dataset.scoSwitchTab);
+      });
+    });
+  };
 
   const initTabs = () => {
     const initial = (window.location.hash || '').replace('#', '') || window.localStorage.getItem(ACTIVE_TAB_KEY) || window.localStorage.getItem('scoActiveTab') || 'today';
@@ -569,20 +579,22 @@
         });
 
         window.setTimeout(() => {
-          root.querySelectorAll('[data-toggle-script]').forEach((button) => {
+          const drawerScope = root.closest('#scoCoachOverlay') || document;
+
+          drawerScope.querySelectorAll('[data-toggle-script]').forEach((button) => {
             button.addEventListener('click', () => {
-              const body = root.querySelector(`[data-script-body="${button.dataset.toggleScript}"]`);
+              const body = drawerScope.querySelector(`[data-script-body="${button.dataset.toggleScript}"]`);
               if (!body) return;
               body.hidden = !body.hidden;
               button.textContent = body.hidden ? 'Text anzeigen' : 'Text ausblenden';
             });
           });
 
-          root.querySelectorAll('[data-copy-script]').forEach((button) => {
+          drawerScope.querySelectorAll('[data-copy-script]').forEach((button) => {
             button.addEventListener('click', async () => navigator.clipboard.writeText(button.dataset.copyValue || ''));
           });
 
-          root.querySelectorAll('[data-run-step]').forEach((button) => {
+          drawerScope.querySelectorAll('[data-run-step]').forEach((button) => {
             button.addEventListener('click', async () => {
               const payload = JSON.parse(button.dataset.runStep.replace(/&apos;/g, "'"));
               await scoGoToDailyDrill(payload);
@@ -590,7 +602,7 @@
             });
           });
 
-          root.querySelectorAll('[data-complete-mission]').forEach((button) => {
+          drawerScope.querySelectorAll('[data-complete-mission]').forEach((button) => {
             button.addEventListener('click', async () => {
               await api('missions/step-complete', { method: 'POST', body: JSON.stringify({ mission_id: Number(button.dataset.completeMission), step_day: Number(button.dataset.stepDay) }) });
               await renderMissions();
@@ -598,7 +610,7 @@
             });
           });
 
-          bindSwitchTabs(root);
+          bindSwitchTabs(drawerScope);
         }, 0);
       });
     });
@@ -858,7 +870,17 @@
       tele.querySelector('[data-sco-tp-library]').addEventListener('click', () => {
         const scripts = state.library.filter((item) => (item.category_key || item.type) === 'script').slice(0, 20);
         drawer.openDrawer({ title: 'Script auswählen', iconClass: 'fa-solid fa-file-lines', html: scripts.map((item) => `<button type=\"button\" class=\"sco-btn\" data-pick-script=\"${item.id}\">${esc(item.title)}</button>`).join('<div style=\"height:8px\"></div>') || '<p>Keine Skripte verfügbar.</p>' });
-        window.setTimeout(() => { root.querySelectorAll('[data-pick-script]').forEach((button) => button.addEventListener('click', () => { const pick = scripts.find((item)=>Number(item.id)===Number(button.dataset.pickScript)); if (pick) { textArea.value = pick.content || ''; sync(); drawer.closeDrawer(); }})); }, 0);
+        window.setTimeout(() => {
+          const drawerScope = root.closest('#scoCoachOverlay') || document;
+          drawerScope.querySelectorAll('[data-pick-script]').forEach((button) => button.addEventListener('click', () => {
+            const pick = scripts.find((item)=>Number(item.id)===Number(button.dataset.pickScript));
+            if (pick) {
+              textArea.value = pick.content || '';
+              sync();
+              drawer.closeDrawer();
+            }
+          }));
+        }, 0);
       });
     }
   };
@@ -877,7 +899,7 @@
       if (tabBtn && root.contains(tabBtn)) setTab(tabBtn.dataset.tab);
 
       const switchBtn = event.target.closest('[data-sco-switch-tab]');
-      if (switchBtn && root.contains(switchBtn)) { event.preventDefault(); setTab(switchBtn.dataset.scoSwitchTab); }
+      if (switchBtn) { event.preventDefault(); setTab(switchBtn.dataset.scoSwitchTab); }
 
       const quickBtn = event.target.closest('[data-sco-quick-action]');
       if (quickBtn && root.contains(quickBtn)) runQuickAction(quickBtn.dataset.scoQuickAction);
@@ -909,6 +931,7 @@
     bindCoachReset();
     bindToolTabs();
     bindQuickActions();
+    bindSwitchTabs(root.closest('#scoCoachOverlay') || root);
     await loadDashboard();
     updateHeader();
     renderToday();
