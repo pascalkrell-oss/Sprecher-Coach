@@ -56,6 +56,7 @@
         </section>
 
         <section class="sco-tab-panel" data-panel="daily">
+          <article class="sco-card sco-mission-context" data-sco-mission-context hidden></article>
           <article class="sco-card" data-sco-daily></article>
           <article class="sco-card" data-sco-completion-card>
             <div class="sco-card-header"><h3><?php echo esc_html__('Noch nicht abgeschlossen', 'sprecher-coach-os'); ?></h3></div>

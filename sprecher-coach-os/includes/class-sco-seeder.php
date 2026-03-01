@@ -5,7 +5,7 @@ if (!defined('ABSPATH')) {
 }
 
 class SCO_Seeder {
-    const TARGET_SEED_VERSION = 1;
+    const TARGET_SEED_VERSION = 2;
 
     public static function seed_if_empty() {
         $stored_version = (int) get_option('sco_seed_version', 0);
@@ -133,10 +133,35 @@ class SCO_Seeder {
         global $wpdb;
 
         foreach (self::missions_seed()['missions'] as $mission) {
+            $skill_key = sanitize_key($mission['skill_key'] ?? '');
             $existing_id = (int) $wpdb->get_var($wpdb->prepare(
                 'SELECT id FROM ' . SCO_DB::table('missions') . ' WHERE title=%s LIMIT 1',
                 $mission['title']
             ));
+
+            if ($existing_id === 0 && $skill_key) {
+                $candidate_ids = $wpdb->get_col($wpdb->prepare(
+                    'SELECT m.id FROM ' . SCO_DB::table('missions') . ' m INNER JOIN ' . SCO_DB::table('mission_steps') . ' ms ON m.id = ms.mission_id WHERE m.title=%s',
+                    $mission['title']
+                ));
+
+                foreach ((array) $candidate_ids as $candidate_id) {
+                    $first_step = $wpdb->get_var($wpdb->prepare(
+                        'SELECT checklist FROM ' . SCO_DB::table('mission_steps') . ' WHERE mission_id=%d ORDER BY step_order ASC LIMIT 1',
+                        (int) $candidate_id
+                    ));
+                    $first_step_payload = json_decode((string) $first_step, true);
+                    $candidate_skill = '';
+                    if (is_array($first_step_payload) && array_keys($first_step_payload) !== range(0, count($first_step_payload) - 1)) {
+                        $candidate_skill = sanitize_key($first_step_payload['drill_skill_key'] ?? '');
+                    }
+
+                    if ($candidate_skill === $skill_key) {
+                        $existing_id = (int) $candidate_id;
+                        break;
+                    }
+                }
+            }
 
             $data = [
                 'title' => sanitize_text_field($mission['title']),
@@ -175,12 +200,26 @@ class SCO_Seeder {
             (int) $step['day']
         ));
 
+        $tasks = !empty($step['tasks'])
+            ? array_values(array_map('sanitize_text_field', (array) $step['tasks']))
+            : array_values(array_map('sanitize_text_field', (array) ($step['checklist'] ?? [])));
+
         $data = [
             'mission_id' => $mission_id,
             'step_order' => (int) $step['day'],
             'title' => sanitize_text_field($step['title']),
             'description' => sanitize_text_field($step['title']),
-            'checklist' => wp_json_encode(array_values(array_map('sanitize_text_field', (array) $step['checklist']))),
+            'checklist' => wp_json_encode([
+                'day' => (int) $step['day'],
+                'title' => sanitize_text_field($step['title']),
+                'estimated_minutes' => isset($step['estimated_minutes']) ? max(0, (int) $step['estimated_minutes']) : 0,
+                'tasks' => $tasks,
+                'drill_skill_key' => sanitize_key($step['drill_skill_key'] ?? ''),
+                'drill_category_key' => sanitize_key($step['drill_category_key'] ?? ''),
+                'recommended_drill_id' => max(0, (int) ($step['recommended_drill_id'] ?? 0)),
+                'library_item_id' => max(0, (int) ($step['library_item_id'] ?? 0)),
+                'script_text' => sanitize_textarea_field((string) ($step['script_text'] ?? '')),
+            ]),
         ];
 
         if ($existing_id > 0) {
@@ -248,12 +287,57 @@ class SCO_Seeder {
     }
 
     private static function missions_seed() {
-        return json_decode('{
+        return json_decode(<<<'JSON'
+{
   "missions": [
-    {"skill_key":"werbung","title":"7 Tage Werbung-Basics","short_description":"Punchy, freundlich, keyword-fokussiert – ohne Hektik.","is_premium":false,"steps":[{"day":1,"title":"Werbung-Haltung finden","checklist":["1x Warmup","1x Drill: Energie","Notiz: Was klingt für dich werblich?"]},{"day":2,"title":"Keyword-Fokus","checklist":["2 Keywords markieren","1x Drill: Keyword-Fokus","Reflexion: Welche Worte tragen die Message?"]},{"day":3,"title":"Tempo & Mikro-Pausen","checklist":["1x Drill: Punchy ohne zu hetzen","Notiz: Wo neigst du zu hetzen?"]},{"day":4,"title":"Smile/Leichtigkeit","checklist":["1x Drill: Lächeln hörbar","Vergleich: mit/ohne Lächeln"]},{"day":5,"title":"Call-to-Action sauber","checklist":["1 CTA-Satz 3 Varianten","Wähle die beste + Begründung"]},{"day":6,"title":"Mini-Demo Take","checklist":["1 Script aus Library","3 Takes aufnehmen (optional lokal)","Self-Check ausfüllen"]},{"day":7,"title":"Checkpoint","checklist":["1 Drill deiner Wahl","Kurzfazit: 3 Dinge besser, 1 Sache als nächster Fokus"]}]},
-    {"skill_key":"elearning","title":"5 Tage Lernstimme & Klarheit","short_description":"Didaktisch, ruhig, verständlich – ohne Monotonie.","is_premium":false,"steps":[{"day":1,"title":"Grundhaltung","checklist":["Warmup","1 E-Learning Script sprechen","Self-Check: Verständlichkeit"]},{"day":2,"title":"Pausen zum Verarbeiten","checklist":["Drill: Lern-Pausen","Notiz: Wo brauchen Zuhörer Raum?"]},{"day":3,"title":"Didaktische Betonung","checklist":["Drill: 1 Satz, 3 Bedeutungen","Bestes Pattern merken"]},{"day":4,"title":"Tempo stabil","checklist":["90 Sekunden stabil sprechen","Self-Check: Tempo/Klarheit"]},{"day":5,"title":"Checkpoint","checklist":["1 Drill deiner Wahl","Mini-Fazit schreiben"]}]},
-    {"skill_key":"all","title":"Demo-Plan in 7 Tagen","short_description":"Struktur schaffen, Genres wählen, nächste Schritte klar machen.","is_premium":true,"steps":[{"day":1,"title":"Ziel definieren","checklist":["Wähle 2 Hauptgenres","Notiz: Wo willst du hin?"]},{"day":2,"title":"Text-Pool anlegen","checklist":["5 Scripts in Library markieren","1 eigenes Thema ergänzen"]},{"day":3,"title":"Stil-Referenzen","checklist":["3 Referenzen notieren","Was gefällt dir daran?"]},{"day":4,"title":"Takes planen","checklist":["Pro Genre: 2 Takes planen","Worauf achtest du?"]},{"day":5,"title":"Feinschliff-Checkliste","checklist":["Keywords markieren","Pausen setzen","Tempo definieren"]},{"day":6,"title":"Mini-Demo Rohfassung","checklist":["3 Takes üben (lokal)","Self-Check ausfüllen"]},{"day":7,"title":"Ergebnis & nächste Schritte","checklist":["Was fehlt noch?","Was ist dein nächstes To-do?"]}]}
+    {
+      "skill_key": "werbung",
+      "title": "7 Tage Werbung-Basics",
+      "short_description": "Punchy, freundlich, keyword-fokussiert – ohne Hektik.",
+      "is_premium": false,
+      "steps": [
+        {"day": 1, "title": "Energie & Präsenz (Baseline)", "estimated_minutes": 6, "tasks": ["Sprich den Text 3x: (1) neutral, (2) +20% Energie, (3) +40% Energie – aber ohne schneller zu werden.", "Markiere danach 1 Satz, der am besten „frisch und klar“ klingt.", "Notiere 1 Mini-Regel für morgen (z.B. „Mikro-Pause vor Keyword“)."], "drill_skill_key": "werbung", "drill_category_key": "energie", "script_text": "Guter Geschmack muss nicht kompliziert sein. Ein Klick – und dein Lieblingsmoment ist bereit. Probier’s aus und starte entspannt in den Tag."},
+        {"day": 2, "title": "Keyword-Fokus (2 Wörter führen)", "estimated_minutes": 7, "tasks": ["Wähle im Text genau 2 Keywords (z.B. „schnell“ und „kostenlos“).", "Sprich so, dass nur diese 2 Wörter klar herausstechen – der Rest bleibt ruhig.", "Tipp: nutze eine Mikro-Pause vor dem Keyword statt Lautstärke."], "drill_skill_key": "werbung", "drill_category_key": "betonung", "script_text": "Heute wird’s einfacher: Jetzt bestellen – und du bekommst die Lieferung schnell und kostenlos. Schnell. Kostenlos. Ohne Umwege."},
+        {"day": 3, "title": "Pacing: Punchy ohne zu hetzen", "estimated_minutes": 7, "tasks": ["Sprich den Text in einem flotten Gefühl, aber setze bewusst Mikro-Pausen statt Tempo.", "Achte darauf, am Satzende NICHT zu beschleunigen.", "Wähle am Ende deinen besten Take und begründe kurz warum."], "drill_skill_key": "werbung", "drill_category_key": "pacing", "script_text": "Mehr Energie. Mehr Fokus. Mehr du. Starte heute – mit kurzen Workouts, die wirklich in deinen Alltag passen. Jetzt öffnen und loslegen."},
+        {"day": 4, "title": "Smile: Freundlichkeit hörbar machen", "estimated_minutes": 6, "tasks": ["Sprich den Text 2x: einmal mit echtem Lächeln, einmal komplett neutral.", "Vergleiche: Welche Version wirkt sympathischer – und welche klingt natürlicher?", "Mini-Ziel: Lächeln fühlen, aber nicht „überdrehen“."], "drill_skill_key": "werbung", "drill_category_key": "smile", "script_text": "Du hast dir was Gutes verdient. Gönn dir eine Pause – und mach’s dir leicht. Heute ist dein Tag."},
+        {"day": 5, "title": "Call-to-Action sauber & klar", "estimated_minutes": 7, "tasks": ["Sprich den CTA-Satz 3 Varianten: (1) freundlich, (2) entschlossen, (3) ruhig-premium.", "Achte: klare Endungen, kein Wegnuscheln.", "Wähle die beste CTA-Variante und notiere 1 Lernpunkt."], "drill_skill_key": "werbung", "drill_category_key": "artikulation", "script_text": "Jetzt testen. Einfach starten. Und sofort merken, wie leicht es sein kann. Jetzt ausprobieren."},
+        {"day": 6, "title": "Mini-Demo: 3 Takes, 1 Gewinner", "estimated_minutes": 10, "tasks": ["Sprich den Text 3 Takes: (A) neutral, (B) energiegeladen, (C) premium-ruhig.", "Wähle 1 Gewinner-Take und begründe: Was macht ihn „werblich“?", "Selbstcheck: Keyword klar? Tempo stabil? Endungen sauber?"], "drill_skill_key": "werbung", "drill_category_key": "textverstaendnis", "script_text": "Das ist nicht nur praktisch – das ist smart. Du sparst Zeit, behältst den Überblick und hast mehr Raum für das, was wirklich zählt."},
+        {"day": 7, "title": "Checkpoint: Pattern festigen", "estimated_minutes": 8, "tasks": ["Wähle den Drill, der dir diese Woche am meisten gebracht hat (Energie / Keywords / Pacing).", "Mach 1 Take „Best-of“ – ohne nachzudenken, nur dein neues Pattern.", "Fazit: 3 Dinge besser, 1 Fokus für nächste Woche."], "drill_skill_key": "werbung", "drill_category_key": "betonung", "script_text": "Kurz. Klar. Auf den Punkt. Genau so soll es klingen. Du bist dran – mach’s jetzt."}
+      ]
+    },
+    {
+      "skill_key": "imagefilm",
+      "title": "7 Tage Imagefilm & Produktvideo",
+      "short_description": "Wertigkeit, Ruhe, Emotion – ohne Kitsch.",
+      "is_premium": true,
+      "steps": [
+        {"day": 1, "title": "Haltung: warm & vertrauensvoll", "estimated_minutes": 7, "tasks": ["Lies den Text einmal still und markiere 3 Worte, die nach „Vertrauen“ klingen.", "Sprich dann langsam, mit Ruhe – ohne werbliche Hektik.", "Mini-Ziel: Sätze ausklingen lassen (nicht abreißen)."], "drill_skill_key": "imagefilm", "drill_category_key": "energie", "script_text": "Qualität entsteht nicht zufällig. Sie ist das Ergebnis aus Erfahrung, Präzision und dem Anspruch, Dinge richtig zu machen – vom ersten Schritt bis zum letzten Detail."},
+        {"day": 2, "title": "Pausen: Wertigkeit durch Luft", "estimated_minutes": 7, "tasks": ["Setze nach jedem zweiten Satz eine kurze, bewusste Pause (0,3–0,5s).", "Achte: Pausen sind Teil der Aussage, nicht „Stille aus Versehen“.", "Wähle am Ende die ruhigste, wertigste Version."], "drill_skill_key": "imagefilm", "drill_category_key": "pausen", "script_text": "Manchmal sind es die kleinen Dinge, die den Unterschied machen. Ein Material. Eine Linie. Ein Gefühl. Und plötzlich wird aus gut… besonders."},
+        {"day": 3, "title": "Bild im Kopf: filmisch erzählen", "estimated_minutes": 9, "tasks": ["Stell dir 3 konkrete Bilder vor (Ort, Licht, Bewegung).", "Sprich so, als würdest du genau diese Bilder beschreiben.", "Mini-Ziel: Erzählfluss – keine „Vorlese“-Kante."], "drill_skill_key": "imagefilm", "drill_category_key": "textverstaendnis", "script_text": "Der Morgen ist ruhig. Die Stadt wird langsam wach. Und mittendrin beginnt etwas, das bleibt: ein Moment, der sich richtig anfühlt – weil alles stimmt."},
+        {"day": 4, "title": "Understatement: weniger ist mehr", "estimated_minutes": 8, "tasks": ["Markiere 2 Keywords (z.B. „Verlässlichkeit“, „Leidenschaft“).", "Betone diese minimal – keine großen Tonhöhen-Sprünge.", "Ziel: Autorität durch Ruhe, nicht durch Lautstärke."], "drill_skill_key": "imagefilm", "drill_category_key": "betonung", "script_text": "Was uns ausmacht? Verlässlichkeit. Und die Leidenschaft, jedes Projekt so zu behandeln, als wäre es unser eigenes."},
+        {"day": 5, "title": "Rhythmus: lange Sätze elegant führen", "estimated_minutes": 10, "tasks": ["Sprich den Text und setze Mini-Pausen nach Sinn-Einheiten (nicht nach Zeilen).", "Achte darauf, dass die Melodie natürlich bleibt.", "Selbstcheck: Kein Durchrushen, keine Monotonie."], "drill_skill_key": "imagefilm", "drill_category_key": "pacing", "script_text": "Wir verbinden moderne Technologie mit echter Handarbeit – und schaffen Lösungen, die nicht nur funktionieren, sondern sich auch richtig anfühlen."},
+        {"day": 6, "title": "Produktvideo: klar, aber emotional", "estimated_minutes": 9, "tasks": ["Sprich den Text 2 Varianten: (1) nüchtern-klar, (2) warm-emotional.", "Finde die perfekte Mitte: klar + menschlich.", "Notiere: Welche Worte tragen die Emotion, ohne kitschig zu werden?"], "drill_skill_key": "imagefilm", "drill_category_key": "artikulation", "script_text": "Ein Produkt, das dir Zeit spart. Das dich entlastet. Und das im Alltag einfach funktioniert – genau dann, wenn du es brauchst."},
+        {"day": 7, "title": "Checkpoint: Imagefilm Take in 60 Sekunden", "estimated_minutes": 8, "tasks": ["Mach 1 Take, der komplett „wie aus einem Guss“ klingt.", "Fokus: Ruhe, Wertigkeit, natürliche Melodie.", "Fazit: 3 Dinge besser, 1 Sache als nächster Fokus."], "drill_skill_key": "imagefilm", "drill_category_key": "pausen", "script_text": "Am Ende zählt, was bleibt: Vertrauen. Qualität. Und das Gefühl, die richtige Entscheidung getroffen zu haben."}
+      ]
+    },
+    {
+      "skill_key": "elearning",
+      "title": "7 Tage E-Learning Klarheit",
+      "short_description": "Didaktisch, ruhig, verständlich – ohne Monotonie.",
+      "is_premium": false,
+      "steps": [
+        {"day": 1, "title": "Grundhaltung: ruhig & sicher", "estimated_minutes": 7, "tasks": ["Sprich den Text bewusst ruhig – als würdest du 1 Person direkt helfen.", "Achte darauf, freundlich zu klingen, ohne „zu werben“.", "Notiere: 1 Stelle, an der du noch klarer werden willst."], "drill_skill_key": "elearning", "drill_category_key": "pacing", "script_text": "In dieser Einheit lernst du die Grundlagen. Wir gehen Schritt für Schritt vor, damit du das Thema sicher anwenden kannst – ohne Stress."},
+        {"day": 2, "title": "Pausen: Verarbeiten lassen", "estimated_minutes": 8, "tasks": ["Setze nach jedem dritten Satz eine kurze Pause.", "Ziel: Zuhörer:innen Zeit geben, das Gesagte zu verarbeiten.", "Achte: Pausen klingen bewusst, nicht zufällig."], "drill_skill_key": "elearning", "drill_category_key": "pausen", "script_text": "Wichtig sind drei Punkte: Erstens die Struktur. Zweitens die Umsetzung. Und drittens die Kontrolle. Schauen wir uns das jetzt nacheinander an."},
+        {"day": 3, "title": "Didaktische Betonung: Sinn lenken", "estimated_minutes": 9, "tasks": ["Betone pro Satz nur 1 Kernwort.", "Sprich den Text zweimal: einmal Kernwort A, einmal Kernwort B.", "Ziel: Zuhörer-Lenkung statt Schauspiel."], "drill_skill_key": "elearning", "drill_category_key": "betonung", "script_text": "Datenschutz bedeutet: Du entscheidest, was mit deinen Daten passiert. Entscheidend ist, dass du den Zweck kennst – und bewusst zustimmst."},
+        {"day": 4, "title": "Artikulation: Fachbegriffe klar, aber weich", "estimated_minutes": 8, "tasks": ["Sprich die Schlüsselbegriffe extra sauber, ohne zu pressen.", "Ziel: 100% Verständlichkeit bei angenehmer Stimme.", "Tipp: Kiefer locker, Endungen sauber."], "drill_skill_key": "elearning", "drill_category_key": "artikulation", "script_text": "Wir unterscheiden zwischen Authentifizierung, Autorisierung und Verschlüsselung. Diese drei Begriffe werden häufig verwechselt – hier klären wir den Unterschied."},
+        {"day": 5, "title": "Tempo stabil (keine Satz-Ende-Beschleunigung)", "estimated_minutes": 10, "tasks": ["Sprich 60–90 Sekunden und halte das Tempo konstant.", "Achte besonders auf das Satzende: nicht schneller werden.", "Notiere: Wo rutschst du aus dem Tempo?"], "drill_skill_key": "elearning", "drill_category_key": "pacing", "script_text": "Zuerst wählst du das passende Modul aus. Dann bearbeitest du die Aufgabe. Zum Schluss überprüfst du das Ergebnis – und speicherst deine Änderungen."},
+        {"day": 6, "title": "Lebendigkeit ohne Show: Mini-Melodie", "estimated_minutes": 8, "tasks": ["Arbeite mit minimaler Tonhöhenbewegung auf Schlüsselstellen.", "Ziel: lebendig, aber seriös – keine übertriebene Performance.", "Selbstcheck: Klingt es natürlich und hilfreich?"], "drill_skill_key": "elearning", "drill_category_key": "textverstaendnis", "script_text": "Wenn du den Ablauf einmal verstanden hast, wird es leicht. Du musst nicht alles auswendig können – du brauchst nur das Prinzip. Und genau das üben wir jetzt."},
+        {"day": 7, "title": "Checkpoint: 90 Sekunden „wie aus einem Guss“", "estimated_minutes": 9, "tasks": ["Mach 1 Take, der ruhig, klar und konstant klingt.", "Fokus: Pausen + ein Kernwort pro Satz.", "Fazit: 3 Dinge besser, 1 Fokus für nächste Woche."], "drill_skill_key": "elearning", "drill_category_key": "pausen", "script_text": "Zusammengefasst: Du kennst jetzt die Schritte, du kennst die Stolperfallen – und du weißt, worauf du achten musst. Im nächsten Kapitel vertiefen wir das Thema."}
+      ]
+    }
   ]
-}', true);
+}
+JSON
+        , true);
     }
 }

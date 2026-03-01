@@ -155,3 +155,30 @@ body.sco-drawer-open { overflow: hidden; }
   .sco-drawer { right: 0; top: 0; bottom: 0; width: 100vw; border-radius: 0; }
   .sco-drawer__head, .sco-drawer__foot { border-radius: 0; }
 }
+
+.sco-mission-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.sco-mission-step-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.sco-mission-task-list {
+  margin: 8px 0 12px 18px;
+}
+
+.sco-mission-script {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--sco-border);
+  border-radius: 14px;
+  background: var(--sco-surface-2);
+}
