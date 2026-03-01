@@ -29,7 +29,9 @@
 
     <div class="sco-shell">
       <aside class="sco-nav sco-card">
-        <h3><?php echo esc_html__('Navigation', 'sprecher-coach-os'); ?></h3>
+        <div class="sco-card-header">
+          <h3><?php echo esc_html__('Navigation', 'sprecher-coach-os'); ?></h3>
+        </div>
         <nav class="sco-nav-list" aria-label="Sprecher Coach Navigation">
           <button type="button" class="is-active" data-tab="today"><?php echo esc_html__('Heute', 'sprecher-coach-os'); ?></button>
           <button type="button" data-tab="daily"><?php echo esc_html__('Daily Drill', 'sprecher-coach-os'); ?></button>
@@ -96,5 +98,13 @@
         </div>
       </aside>
     </div>
+
+    <nav class="sco-mobile-tabs" aria-label="Mobile Tab Navigation">
+      <button type="button" class="is-active" data-tab="today"><?php echo esc_html__('Heute', 'sprecher-coach-os'); ?></button>
+      <button type="button" data-tab="daily"><?php echo esc_html__('Drill', 'sprecher-coach-os'); ?></button>
+      <button type="button" data-tab="skilltree"><?php echo esc_html__('Skills', 'sprecher-coach-os'); ?></button>
+      <button type="button" data-tab="library"><?php echo esc_html__('Library', 'sprecher-coach-os'); ?></button>
+      <button type="button" data-tab="progress"><?php echo esc_html__('Stats', 'sprecher-coach-os'); ?></button>
+    </nav>
   <?php endif; ?>
 </div>
