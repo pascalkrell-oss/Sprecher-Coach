@@ -362,15 +362,17 @@ body.sco-drawer-open { overflow: hidden; }
   color: rgba(255,255,255,0.92) !important;
 }
 
-/* Nav items: never change on hover */
+/* Nav items: subtle modern hover feedback */
 .sco-app .sco-nav-list button:hover {
-  background: transparent !important;
-  border-color: transparent !important;
-  border-left-color: transparent !important;
-  color: rgba(255,255,255,0.65) !important;
+  background: rgba(255,255,255,0.08) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+  border-left-color: rgba(255,255,255,0.2) !important;
+  color: rgba(255,255,255,0.88) !important;
+  transform: translateX(4px) !important;
+  transition: background-color .3s ease, color .3s ease, border-color .3s ease, transform .3s ease !important;
 }
 .sco-app .sco-nav-list button:hover i {
-  color: rgba(255,255,255,0.65) !important;
+  color: rgba(255,255,255,0.88) !important;
 }
 .sco-app .sco-nav-list button.is-active:hover {
   background: rgba(26, 147, 238, 0.18) !important;
@@ -462,9 +464,9 @@ body.sco-drawer-open { overflow: hidden; }
   z-index: 9998;
   background: rgba(15, 20, 26, 0.22);
   backdrop-filter: blur(8px);
-  padding: 0 16px;
+  padding: 0 10px;
   opacity: 0;
-  transition: opacity .38s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity .4s ease-in-out;
 }
 
 .sco-modal-overlay.is-open,
@@ -479,11 +481,11 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-modal {
   position: relative;
   z-index: 9999;
-  width: min(1680px, calc(100vw - 32px));
+  width: min(1400px, 90vw);
   height: calc(100vh - 24px);
   margin: 12px auto;
   background: #fff;
-  border-radius: 26px;
+  border-radius: 0 0 26px 26px;
   border: 1px solid rgba(2, 6, 23, 0.08);
   box-shadow: 0 30px 80px -25px rgba(2, 6, 23, 0.35);
   display: grid;
@@ -491,7 +493,7 @@ body.sco-drawer-open { overflow: hidden; }
   overflow: hidden;
   transform: translateY(-24px);
   opacity: 0;
-  transition: transform .4s cubic-bezier(0.16, 1, 0.3, 1), opacity .4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform .4s cubic-bezier(0.25, 0.8, 0.25, 1), opacity .4s ease-in-out;
 }
 
 .sco-modal-overlay.is-open .sco-modal {
@@ -502,7 +504,7 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-modal-overlay.is-closing .sco-modal {
   transform: translateY(-24px);
   opacity: 0;
-  transition-duration: .3s;
+  transition-duration: .35s;
 }
 
 .sco-modal__head {
@@ -582,13 +584,18 @@ body.sco-drawer-open { overflow: hidden; }
 
 .sco-modal__body {
   min-height: 0;
+  height: 100%;
   overflow: hidden;
   padding: 0;
+  display: flex;
 }
 
 .sco-modal__canvas {
+  flex: 1;
+  min-height: 0;
   height: 100%;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px;
   background: radial-gradient(1200px 600px at 15% 0%, rgba(26, 147, 238, 0.12), transparent 55%), linear-gradient(180deg, #f6f8fb 0%, #ffffff 70%);
 }
@@ -596,10 +603,34 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-modal__canvas .sco-app,
 .sco-modal__body .sco-app {
   margin: 0;
-  max-width: 100%;
+  width: 100%;
+  max-width: 1400px;
   border-radius: 0;
   min-height: 100%;
+  padding: clamp(14px, 2vw, 24px);
   background: transparent !important;
+}
+
+/* Respect the WordPress admin bar (desktop/mobile heights). */
+body.admin-bar .sco-modal-overlay {
+  top: 32px;
+  height: calc(100vh - 32px);
+}
+
+body.admin-bar .sco-modal {
+  height: calc(100vh - 56px);
+}
+
+@media (max-width: 782px) {
+  body.admin-bar .sco-modal-overlay {
+    top: 46px;
+    height: calc(100vh - 46px);
+  }
+
+  body.admin-bar .sco-modal {
+    height: calc(100vh - 46px);
+    margin: 0 auto;
+  }
 }
 
 .sco-modal__loading {
