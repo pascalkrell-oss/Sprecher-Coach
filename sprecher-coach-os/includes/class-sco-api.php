@@ -17,6 +17,7 @@ class SCO_API {
         register_rest_route('sco/v1', '/skilltree', array_merge(['methods' => 'GET', 'callback' => [$this, 'skilltree']], $auth));
         register_rest_route('sco/v1', '/missions', array_merge(['methods' => 'GET', 'callback' => [$this, 'missions']], $auth));
         register_rest_route('sco/v1', '/missions/step-complete', array_merge(['methods' => 'POST', 'callback' => [$this, 'mission_step_complete']], $auth));
+        register_rest_route('sco/v1', '/drills/recommend', array_merge(['methods' => 'GET', 'callback' => [$this, 'recommend_drill']], $auth));
         register_rest_route('sco/v1', '/library', array_merge(['methods' => 'GET', 'callback' => [$this, 'library']], $auth));
         register_rest_route('sco/v1', '/library/open', array_merge(['methods' => 'POST', 'callback' => [$this, 'library_open']], $auth));
     }
@@ -256,7 +257,8 @@ class SCO_API {
 
         foreach ($missions as &$mission) {
             $mission['locked'] = !$premium && (int) $mission['is_premium'] === 1;
-            $mission['steps'] = $wpdb->get_results($wpdb->prepare('SELECT * FROM ' . SCO_DB::table('mission_steps') . ' WHERE mission_id=%d ORDER BY step_order ASC', $mission['id']), ARRAY_A);
+            $steps = $wpdb->get_results($wpdb->prepare('SELECT * FROM ' . SCO_DB::table('mission_steps') . ' WHERE mission_id=%d ORDER BY step_order ASC', $mission['id']), ARRAY_A);
+            $mission['steps'] = array_map([$this, 'normalize_mission_step'], $steps);
             $completed_days = $wpdb->get_col($wpdb->prepare('SELECT step_day FROM ' . SCO_DB::table('user_mission_steps') . ' WHERE user_id=%d AND mission_id=%d', $user_id, $mission['id']));
             $mission['completed_days'] = array_map('intval', $completed_days);
         }
@@ -265,6 +267,103 @@ class SCO_API {
             'items' => $missions,
             'premium_tooltip' => SCO_Utils::copy('premium_tooltips', 'locked_missions'),
         ]);
+    }
+
+    public function recommend_drill(WP_REST_Request $request) {
+        global $wpdb;
+
+        $user_id = get_current_user_id();
+        $premium = SCO_Permissions::is_premium_user($user_id);
+        $skill = sanitize_key((string) $request->get_param('skill'));
+        $category = sanitize_key((string) $request->get_param('category'));
+        $recommended_drill_id = (int) $request->get_param('recommended_drill_id');
+        $today = SCO_Utils::today();
+        $settings = SCO_Utils::get_settings();
+        $free_skills = (array) $settings['free_skills_enabled'];
+
+        if (!$skill) {
+            $skill = 'werbung';
+        }
+        if (!$premium && !in_array($skill, $free_skills, true)) {
+            $skill = $free_skills[0] ?? 'werbung';
+        }
+
+        if ($recommended_drill_id > 0) {
+            $by_id = $wpdb->get_row($wpdb->prepare('SELECT * FROM ' . SCO_DB::table('drills') . ' WHERE id=%d LIMIT 1', $recommended_drill_id), ARRAY_A);
+            if ($by_id) {
+                if ($premium || (int) $by_id['is_premium'] === 0) {
+                    $by_id['self_check_questions'] = json_decode($by_id['self_check_questions'], true);
+                    return rest_ensure_response($by_id);
+                }
+            }
+        }
+
+        $last7 = $wpdb->get_col($wpdb->prepare('SELECT drill_id FROM ' . SCO_DB::table('user_completions') . ' WHERE user_id=%d AND completion_date >= DATE_SUB(%s, INTERVAL 7 DAY)', $user_id, $today));
+        $last7 = array_map('intval', $last7);
+
+        $where = ' WHERE skill_key=%s';
+        $args = [$skill];
+        if ($category) {
+            $where .= ' AND category_key=%s';
+            $args[] = $category;
+        }
+        if (!$premium) {
+            $where .= ' AND is_premium=0';
+        }
+
+        $drills = $wpdb->get_results($wpdb->prepare('SELECT * FROM ' . SCO_DB::table('drills') . $where, ...$args), ARRAY_A);
+        if (empty($drills) && $category) {
+            $args = [$skill];
+            if (!$premium) {
+                $drills = $wpdb->get_results($wpdb->prepare('SELECT * FROM ' . SCO_DB::table('drills') . ' WHERE skill_key=%s AND is_premium=0', ...$args), ARRAY_A);
+            } else {
+                $drills = $wpdb->get_results($wpdb->prepare('SELECT * FROM ' . SCO_DB::table('drills') . ' WHERE skill_key=%s', ...$args), ARRAY_A);
+            }
+        }
+
+        if (empty($drills)) {
+            return new WP_REST_Response(['message' => __('Kein passender Drill gefunden.', 'sprecher-coach-os')], 404);
+        }
+
+        $filtered = array_values(array_filter($drills, function ($drill) use ($last7) {
+            return !in_array((int) $drill['id'], $last7, true);
+        }));
+        $pool = !empty($filtered) ? $filtered : $drills;
+        $pick = $pool[array_rand($pool)];
+        $pick['self_check_questions'] = json_decode($pick['self_check_questions'], true);
+
+        return rest_ensure_response($pick);
+    }
+
+    private function normalize_mission_step(array $step) {
+        $payload = json_decode((string) $step['checklist'], true);
+        $tasks = [];
+
+        if (is_array($payload) && array_keys($payload) === range(0, count($payload) - 1)) {
+            $tasks = array_values(array_filter(array_map('sanitize_text_field', $payload)));
+            $payload = ['tasks' => $tasks];
+        }
+
+        if (!is_array($payload)) {
+            $payload = [];
+        }
+
+        $tasks = array_values(array_filter(array_map('sanitize_text_field', (array) ($payload['tasks'] ?? []))));
+
+        return [
+            'id' => (int) $step['id'],
+            'mission_id' => (int) $step['mission_id'],
+            'step_order' => (int) $step['step_order'],
+            'day' => (int) $step['step_order'],
+            'title' => sanitize_text_field($step['title']),
+            'estimated_minutes' => max(0, (int) ($payload['estimated_minutes'] ?? 0)),
+            'tasks' => $tasks,
+            'drill_skill_key' => sanitize_key($payload['drill_skill_key'] ?? ''),
+            'drill_category_key' => sanitize_key($payload['drill_category_key'] ?? ''),
+            'recommended_drill_id' => max(0, (int) ($payload['recommended_drill_id'] ?? 0)),
+            'library_item_id' => max(0, (int) ($payload['library_item_id'] ?? 0)),
+            'script_text' => sanitize_textarea_field((string) ($payload['script_text'] ?? '')),
+        ];
     }
 
     public function mission_step_complete(WP_REST_Request $request) {
