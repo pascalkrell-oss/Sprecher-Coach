@@ -6,26 +6,33 @@
         <h2><?php echo esc_html__('Bitte einloggen', 'sprecher-coach-os'); ?></h2>
       </div>
       <p><?php echo esc_html__('Der Sprecher Coach speichert deinen Fortschritt – dafür brauchst du ein Konto.', 'sprecher-coach-os'); ?></p>
+      <div class="sco-login-form-wrap">
+        <?php
+        wp_login_form([
+          'echo' => true,
+          'remember' => true,
+          'redirect' => home_url(add_query_arg([])),
+          'label_username' => __('E-Mail oder Benutzername', 'sprecher-coach-os'),
+          'label_password' => __('Passwort', 'sprecher-coach-os'),
+          'label_log_in' => __('Einloggen', 'sprecher-coach-os'),
+          'id_submit' => 'sco-login-submit',
+        ]);
+        ?>
+      </div>
       <div class="sco-actions">
-        <a class="sco-btn sco-btn-primary" href="<?php echo esc_url(wp_login_url(home_url(add_query_arg([])))); ?>"><?php echo esc_html__('Einloggen', 'sprecher-coach-os'); ?></a>
         <?php if (get_option('users_can_register')) : ?>
-          <a class="sco-btn" href="<?php echo esc_url(home_url('/my-account/')); ?>"><?php echo esc_html__('Konto erstellen', 'sprecher-coach-os'); ?></a>
+          <a class="sco-btn sco-btn-primary" href="<?php echo esc_url(wp_registration_url()); ?>"><?php echo esc_html__('Konto erstellen', 'sprecher-coach-os'); ?></a>
         <?php endif; ?>
       </div>
     </section>
   <?php else : ?>
-    <header class="sco-topbar sco-card">
-      <div>
-        <p class="sco-kicker"><?php echo esc_html__('Sprecher Coach', 'sprecher-coach-os'); ?></p>
-        <h1><?php echo esc_html__('Sprecher Coach OS', 'sprecher-coach-os'); ?></h1>
-        <p class="sco-muted"><?php echo esc_html(SCO_Utils::copy('cta', 'dashboard_nudge')); ?></p>
-      </div>
-      <div class="sco-pill-row" data-sco-status-pills>
+    <section class="sco-card sco-status-inline" data-sco-status-pills>
+      <div class="sco-pill-row">
         <span class="sco-pill" data-sco-streak><?php echo esc_html__('Trainingsserie 0', 'sprecher-coach-os'); ?></span>
         <span class="sco-pill sco-pill-neutral" data-sco-level><?php echo esc_html__('Level 1', 'sprecher-coach-os'); ?></span>
         <span class="sco-pill sco-pill-neutral" data-sco-weekly><?php echo esc_html__('Wochenziel 0/5', 'sprecher-coach-os'); ?></span>
       </div>
-    </header>
+    </section>
 
     <section class="sco-card sco-quick-actions" aria-label="Quick Actions">
       <button type="button" class="sco-btn" data-sco-quick-action="daily"><?php echo esc_html__('Tagesdrill', 'sprecher-coach-os'); ?></button>
