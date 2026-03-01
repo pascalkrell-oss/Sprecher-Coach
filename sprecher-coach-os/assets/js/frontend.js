@@ -3,6 +3,7 @@
   const MISSION_CONTEXT_KEY = 'sco_mission_context';
   const MISSION_RUN_STATE_KEY = 'sco_mission_run_state';
   const ACTIVE_TAB_KEY = 'sco_active_tab';
+  const SPLIT_VIEW_KEY = 'sco_split_view';
 
   const initCoachApp = (root) => {
     if (!root || root.dataset.scoAppInitialized === '1' || !root.querySelector('.sco-shell')) return;
@@ -28,6 +29,7 @@
     activeLibraryCategory: 'warmup',
     generatedTool: null,
     teleprompter: { running: false, raf: null, offset: 0, lastTs: 0 },
+    notesDraft: { better_today: '', focus_tomorrow: '' },
   };
 
   const esc = (value) => {
@@ -144,6 +146,56 @@
     window.localStorage.setItem('sco_active_tool', activeTool);
   };
 
+  const isSplitView = () => window.localStorage.getItem(SPLIT_VIEW_KEY) === '1';
+
+  const applySplitView = (enabled) => {
+    root.querySelectorAll('[data-sco-split-layout]').forEach((node) => {
+      node.classList.toggle('is-split', enabled);
+      node.setAttribute('data-split-active', enabled ? '1' : '0');
+    });
+    root.querySelectorAll('[data-sco-split-toggle]').forEach((button) => {
+      button.classList.toggle('is-active', enabled);
+      button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    });
+  };
+
+  const setSplitView = (enabled) => {
+    window.localStorage.setItem(SPLIT_VIEW_KEY, enabled ? '1' : '0');
+    applySplitView(enabled);
+  };
+
+  const gotoMission = () => {
+    setTab('missions');
+    const firstMission = root.querySelector('[data-mission]');
+    firstMission?.click();
+  };
+
+  const runQuickAction = (action) => {
+    if (action === 'daily') {
+      setTab('daily');
+      return;
+    }
+    if (action === 'teleprompter') {
+      setTab('tools');
+      setActiveToolPanel('teleprompter');
+      return;
+    }
+    if (action === 'demo') {
+      setTab('tools');
+      setActiveToolPanel('demo');
+      return;
+    }
+    if (action === 'mission') {
+      gotoMission();
+    }
+  };
+
+  const bindQuickActions = () => {
+    root.querySelectorAll('[data-sco-quick-action]').forEach((button) => {
+      button.addEventListener('click', () => runQuickAction(button.dataset.scoQuickAction));
+    });
+  };
+
   const bindSwitchTabs = (scope = root) => {
     scope.querySelectorAll('[data-sco-switch-tab]').forEach((button) => {
       button.addEventListener('click', (event) => {
@@ -158,6 +210,94 @@
     bindSwitchTabs(root);
     const initial = (window.location.hash || '').replace('#', '') || window.localStorage.getItem(ACTIVE_TAB_KEY) || window.localStorage.getItem('scoActiveTab') || 'today';
     setTab(initial);
+  };
+
+  const bindCommandPalette = () => {
+    const modal = root.querySelector('[data-sco-command-palette]');
+    const input = modal?.querySelector('[data-sco-command-input]');
+    const list = modal?.querySelector('[data-sco-command-results]');
+    if (!modal || !input || !list) return;
+
+    const commands = [
+      { label: 'Heute öffnen', action: () => setTab('today') },
+      { label: 'Daily Drill starten', action: () => setTab('daily') },
+      { label: 'Mission fortsetzen', action: () => gotoMission() },
+      { label: 'Demo Text Generator', action: () => { setTab('tools'); setActiveToolPanel('demo'); } },
+      { label: 'Teleprompter', action: () => { setTab('tools'); setActiveToolPanel('teleprompter'); } },
+      { label: 'Bibliothek: Skripte', action: () => { setTab('library'); root.querySelector('[data-library-category="script"]')?.click(); } },
+      { label: 'Coach zurücksetzen', action: () => root.querySelector('[data-sco-reset-coach]')?.click() },
+    ];
+    let activeIndex = 0;
+
+    const close = () => {
+      modal.hidden = true;
+      modal.setAttribute('aria-hidden', 'true');
+      input.value = '';
+    };
+
+    const run = (idx) => {
+      const command = commands[idx];
+      if (!command) return;
+      close();
+      command.action();
+    };
+
+    const render = () => {
+      const q = input.value.trim().toLowerCase();
+      const matches = commands.filter((item) => item.label.toLowerCase().includes(q));
+      if (activeIndex >= matches.length) activeIndex = 0;
+      list.innerHTML = matches.map((item, idx) => `<li><button type="button" class="sco-command-item ${idx === activeIndex ? 'is-active' : ''}" data-command-idx="${idx}" role="option" aria-selected="${idx === activeIndex ? 'true' : 'false'}">${esc(item.label)}</button></li>`).join('') || '<li class="sco-muted">Kein Treffer</li>';
+      list.querySelectorAll('[data-command-idx]').forEach((button) => {
+        button.addEventListener('click', () => run(Number(button.dataset.commandIdx)));
+      });
+      return matches;
+    };
+
+    const open = () => {
+      modal.hidden = false;
+      modal.setAttribute('aria-hidden', 'false');
+      activeIndex = 0;
+      render();
+      input.focus();
+    };
+
+    root.querySelector('[data-sco-command-open]')?.addEventListener('click', open);
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) close();
+    });
+    input.addEventListener('input', () => {
+      activeIndex = 0;
+      render();
+    });
+    input.addEventListener('keydown', (event) => {
+      const matches = render();
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        activeIndex = Math.min(activeIndex + 1, Math.max(matches.length - 1, 0));
+        render();
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        activeIndex = Math.max(activeIndex - 1, 0);
+        render();
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        run(activeIndex);
+      }
+      if (event.key === 'Escape') close();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      const pressedK = event.key.toLowerCase() === 'k';
+      if ((event.ctrlKey || event.metaKey) && pressedK) {
+        event.preventDefault();
+        open();
+      }
+      if (event.key === 'Escape' && !modal.hidden) {
+        close();
+      }
+    });
   };
 
   const updateHeader = () => {
@@ -247,6 +387,10 @@
     root.querySelector('[data-sco-pause]')?.addEventListener('click', () => { window.clearInterval(timer); timer = null; });
     root.querySelector('[data-sco-reset]')?.addEventListener('click', () => { window.clearInterval(timer); timer = null; sec = 0; display.textContent = '00:00'; });
 
+    root.querySelector('[data-sco-split-toggle]')?.addEventListener('click', () => {
+      setSplitView(!isSplitView());
+    });
+
     root.querySelectorAll('[data-toggle-key]').forEach((tile) => {
       tile.addEventListener('click', () => {
         const key = tile.dataset.toggleKey;
@@ -274,13 +418,25 @@
         answers: Object.values(state.answers),
         completed_seconds: sec,
       };
-      const response = await api('drill/complete', { method: 'POST', body: JSON.stringify(payload) });
+      const response = await api('complete-drill', { method: 'POST', body: JSON.stringify(payload) });
       const completion = root.querySelector('[data-sco-completion-card]');
-      completion.innerHTML = `<div class="sco-card-header"><h3>Stark! +${response.xp_earned} XP</h3></div><p>${esc(response.feedback)}</p>`;
+      completion.innerHTML = `<div class="sco-card-header"><h3>Stark! +${response.xp} XP</h3></div><p>${esc(response.feedback)}</p>`;
+      const notesPanel = root.querySelector('[data-sco-notes-panel]');
+      if (notesPanel) {
+        notesPanel.hidden = false;
+        notesPanel.innerHTML = `<div class="sco-card-header"><h3>Session Notes</h3></div><label>Heute besser:<textarea data-sco-note-better rows="2" class="sco-input" placeholder="1–2 Sätze"></textarea></label><label>Morgen Fokus:<textarea data-sco-note-focus rows="2" class="sco-input" placeholder="Worauf willst du achten?"></textarea></label><div class="sco-actions"><button type="button" class="sco-btn sco-btn-primary" data-sco-note-save>Notiz speichern</button></div>`;
+        notesPanel.querySelector('[data-sco-note-save]')?.addEventListener('click', async () => {
+          const better = notesPanel.querySelector('[data-sco-note-better]')?.value || '';
+          const focus = notesPanel.querySelector('[data-sco-note-focus]')?.value || '';
+          await api('notes', { method: 'POST', body: JSON.stringify({ drill_id: Number(state.drill.id), better_today: better, focus_tomorrow: focus }) });
+          toast('Notiz gespeichert.');
+          await loadDashboard();
+          renderProgress();
+        });
+      }
       await loadDashboard();
       updateHeader();
       renderToday();
-      setTab('today');
     });
   };
 
@@ -302,26 +458,37 @@
     wrap.innerHTML = `
       <div class="sco-card-header"><h2>${esc(state.drill.title)}</h2></div>
       <p>${esc(state.drill.description)}</p>
-      <section class="sco-script-card">
-        <div class="sco-script-card__header">
-          <div class="sco-script-card__title-wrap">
-            <h3>Übungstext</h3>
-            <span class="sco-pill sco-pill-neutral">${esc(sourceLabel)}</span>
-          </div>
-          <div class="sco-btn-group">
-            <button type="button" class="sco-btn" data-sco-copy-script><i class="fa-solid fa-copy" aria-hidden="true"></i> Copy</button>
-            <button type="button" class="sco-btn" data-sco-alt-script>Neuer Text</button>
-          </div>
-        </div>
-        <p class="sco-muted sco-script-card__subtitle">${esc(scriptTitle || 'Trainingstext')}</p>
-        <div class="sco-script-card__body" data-sco-script-text>${esc(scriptText)}</div>
-      </section>
-      <div class="sco-timer-row"><strong data-sco-timer>00:00</strong><div class="sco-btn-group"><button type="button" class="sco-btn" data-sco-start>Start</button><button type="button" class="sco-btn" data-sco-pause>Pause</button><button type="button" class="sco-btn" data-sco-reset>Reset</button></div></div>
-      <div class="sco-self-check-grid">
-        ${sliderQuestions.map((q, i) => `<div class="sco-self-check-item"><label>${esc(q.text || q.label || `Slider ${i + 1}`)}</label><input type="range" min="1" max="5" value="3" data-range-key="slider_${i}"><small class="sco-muted">Wert: <span data-range-value>3</span></small></div>`).join('')}
-        ${tileQuestions.length ? `<div class="sco-self-check-item"><label>Self-Check</label><div class="sco-toggle-tiles">${tileQuestions.map((q, i) => `<button type="button" class="sco-toggle-tile" aria-pressed="false" data-toggle-key="tile_${i}"><span class="sco-check">✓</span>${esc(q.text || q.label || `Check ${i + 1}`)}</button>`).join('')}</div></div>` : ''}
+      <div class="sco-actions" style="margin-top:10px;">
+        <button type="button" class="sco-btn" data-sco-split-toggle aria-pressed="false"><i class="fa-solid fa-columns" aria-hidden="true"></i>Split View</button>
       </div>
-      <div class="sco-actions"><button type="button" class="sco-btn sco-btn-primary" data-sco-complete disabled>Abschließen</button></div>`;
+      <section class="sco-split-layout" data-sco-split-layout>
+        <div class="sco-split-layout__left">
+          <section class="sco-script-card">
+            <div class="sco-script-card__header">
+              <div class="sco-script-card__title-wrap">
+                <h3>Übungstext</h3>
+                <span class="sco-pill sco-pill-neutral">${esc(sourceLabel)}</span>
+              </div>
+              <div class="sco-btn-group">
+                <button type="button" class="sco-btn" data-sco-copy-script><i class="fa-solid fa-copy" aria-hidden="true"></i> Copy</button>
+                <button type="button" class="sco-btn" data-sco-alt-script>Neuer Text</button>
+              </div>
+            </div>
+            <p class="sco-muted sco-script-card__subtitle">${esc(scriptTitle || 'Trainingstext')}</p>
+            <div class="sco-script-card__body" data-sco-script-text>${esc(scriptText)}</div>
+          </section>
+        </div>
+        <div class="sco-split-layout__right">
+          <div class="sco-timer-row"><strong data-sco-timer>00:00</strong><div class="sco-btn-group"><button type="button" class="sco-btn" data-sco-start>Start</button><button type="button" class="sco-btn" data-sco-pause>Pause</button><button type="button" class="sco-btn" data-sco-reset>Reset</button></div></div>
+          <div class="sco-self-check-grid">
+            ${sliderQuestions.map((q, i) => `<div class="sco-self-check-item"><label>${esc(q.text || q.label || `Slider ${i + 1}`)}</label><input type="range" min="1" max="5" value="3" data-range-key="slider_${i}"><small class="sco-muted">Wert: <span data-range-value>3</span></small></div>`).join('')}
+            ${tileQuestions.length ? `<div class="sco-self-check-item"><label>Self-Check</label><div class="sco-toggle-tiles">${tileQuestions.map((q, i) => `<button type="button" class="sco-toggle-tile" aria-pressed="false" data-toggle-key="tile_${i}"><span class="sco-check">✓</span>${esc(q.text || q.label || `Check ${i + 1}`)}</button>`).join('')}</div></div>` : ''}
+          </div>
+          <div class="sco-mission-mini">${missionContext ? `Mission: ${esc(missionContext.mission_title)} · Tag ${Number(missionContext.step_day)}` : 'Mission-Kontext erscheint hier, sobald du aus Missionen startest.'}</div>
+        </div>
+      </section>
+      <div class="sco-actions"><button type="button" class="sco-btn sco-btn-primary" data-sco-complete disabled>Abschließen</button></div>
+      <section class="sco-session-notes" data-sco-notes-panel hidden></section>`;
 
     wrap.querySelector('[data-sco-copy-script]')?.addEventListener('click', async () => {
       await navigator.clipboard.writeText(scriptText);
@@ -339,6 +506,7 @@
     });
 
     bindDailyActions();
+    applySplitView(isSplitView());
     updateCompleteState();
     renderMissionContextBanner();
   };
@@ -516,6 +684,9 @@
     const remaining = Math.max(progress.weekly_goal - progress.weekly_count, 0);
     const seriesInfo = progress.streak > 0 ? `${progress.streak} Tage in Folge trainiert` : 'Noch keine Serie – starte heute';
     const badge = progress.streak >= 14 ? 'Sehr stark' : (progress.streak >= 7 ? 'Stabil' : (progress.streak >= 3 ? 'Konstant' : ''));
+    const notes = state.dashboard.notes_recent || [];
+    const week = state.dashboard.week_review || { trainings_this_week: 0, streak_max: 0, top_skill: 'werbung', insights: [] };
+    const plan = state.dashboard.adaptive_plan || { focus: [] };
     panel.innerHTML = `
       <div class="sco-card-header"><h3>Fortschritt</h3></div>
       <div class="sco-progress-kpis">
@@ -526,7 +697,10 @@
       <div class="sco-progress-extra">
         <div class="sco-kpi-card"><p class="sco-kpi-label">Wochenziel: ${progress.weekly_goal} Trainings</p><div class="sco-progress"><div style="width:${Math.min((progress.weekly_count / progress.weekly_goal) * 100, 100)}%"></div></div><p class="sco-kpi-sub">Nächstes Ziel: noch ${remaining} Trainings bis Wochenziel</p></div>
         ${state.dashboard.premium ? '<div class="sco-progress-lock"><strong>Verlauf</strong><p class="sco-muted">Bald: Wochenvergleich, Skill-History, KPI-Trends.</p></div>' : `<div class="sco-progress-lock"><strong>Verlauf (Premium)</strong><p class="sco-muted">Vergleiche und Timeline sind im Premium-Plan enthalten.</p><div class="sco-actions"><a class="sco-btn sco-btn-primary" href="${root.dataset.upgradeUrl || '#'}">Upgrade</a></div></div>`}
-      </div>`;
+      </div>
+      <section class="sco-kpi-card sco-progress-section"><h4>Wochenrückblick</h4><p>Trainings diese Woche: <strong>${week.trainings_this_week}</strong></p><p>Trainingsserie (max): <strong>${week.streak_max}</strong></p><p>Top Skill: <strong>${esc(skillLabel(week.top_skill))}</strong></p><ul>${(week.insights || []).map((item) => `<li>${esc(item)}</li>`).join('')}</ul>${state.dashboard.premium ? '<p class="sco-muted">Premium: Verlauf und Vergleich aktiviert.</p>' : '<p class="sco-muted">Premium: Charts + Vergleich.</p>'}</section>
+      <section class="sco-kpi-card sco-progress-section"><h4>Dein Plan</h4><ul>${(plan.focus || []).map((item) => `<li>${esc(item)}</li>`).join('')}</ul>${state.dashboard.premium ? '<p class="sco-muted">Premium nutzt zusätzliche Personalisierung und mehr Slots.</p>' : ''}</section>
+      <section class="sco-kpi-card sco-progress-section"><h4>Letzte 7 Session Notes</h4>${notes.length ? notes.map((item) => `<article class="sco-note-item"><small>${esc(item.date || '')}</small><p><strong>Heute besser:</strong> ${esc(item.better_today || '-')}</p><p><strong>Morgen Fokus:</strong> ${esc(item.focus_tomorrow || '-')}</p></article>`).join('') : '<p class="sco-muted">Noch keine Notizen gespeichert.</p>'}</section>`;
   };
 
   const bindAdminTestPlan = () => {
@@ -642,7 +816,7 @@
     }
 
     if (tele) {
-      tele.innerHTML = `<div class="sco-card-header"><h3>Teleprompter</h3></div><textarea data-sco-teleprompter-text rows="6" placeholder="Text einfügen oder aus Bibliothek wählen"></textarea><div class="sco-tool-controls"><label>Speed (WPM)<input type="range" min="80" max="220" value="130" data-sco-tp-speed></label><label>Font size<input type="range" min="18" max="56" value="32" data-sco-tp-font></label><label>Line height<input type="range" min="1.2" max="2" step="0.1" value="1.5" data-sco-tp-line></label><label><input type="checkbox" data-sco-tp-mirror> Mirror</label><label><input type="checkbox" data-sco-tp-focus> Focus mode</label></div><div class="sco-actions"><button class="sco-btn sco-btn-primary" type="button" data-sco-tp-start>Start</button><button class="sco-btn" type="button" data-sco-tp-pause>Pause</button><button class="sco-btn" type="button" data-sco-tp-reset>Reset</button><button class="sco-btn" type="button" data-sco-tp-library>Aus Bibliothek wählen</button><button class="sco-btn" type="button" data-sco-tp-from-generator>Aus Demo Generator übernehmen</button></div><div class="sco-teleprompter-view" data-sco-tp-view><div class="sco-teleprompter-content" data-sco-tp-content></div><div class="sco-teleprompter-focus" hidden></div></div>`;
+      tele.innerHTML = `<div class="sco-card-header"><h3>Teleprompter</h3></div><div class="sco-actions" style="margin-top:0;"><button type="button" class="sco-btn" data-sco-split-toggle aria-pressed="false"><i class="fa-solid fa-columns" aria-hidden="true"></i>Split View</button></div><section class="sco-split-layout" data-sco-split-layout><div class="sco-split-layout__left"><textarea data-sco-teleprompter-text rows="10" placeholder="Text einfügen oder aus Bibliothek wählen"></textarea><div class="sco-teleprompter-view" data-sco-tp-view><div class="sco-teleprompter-content" data-sco-tp-content></div><div class="sco-teleprompter-focus" hidden></div></div></div><div class="sco-split-layout__right"><div class="sco-tool-controls"><label>Speed (WPM)<input type="range" min="80" max="220" value="130" data-sco-tp-speed></label><label>Font size<input type="range" min="18" max="56" value="32" data-sco-tp-font></label><label>Line height<input type="range" min="1.2" max="2" step="0.1" value="1.5" data-sco-tp-line></label><label><input type="checkbox" data-sco-tp-mirror> Mirror</label><label><input type="checkbox" data-sco-tp-focus> Focus mode</label></div><div class="sco-actions"><button class="sco-btn sco-btn-primary" type="button" data-sco-tp-start>Start</button><button class="sco-btn" type="button" data-sco-tp-pause>Pause</button><button class="sco-btn" type="button" data-sco-tp-reset>Reset</button><button class="sco-btn" type="button" data-sco-tp-library>Aus Bibliothek wählen</button><button class="sco-btn" type="button" data-sco-tp-from-generator>Aus Demo Generator übernehmen</button></div><div class="sco-mission-mini">Mission Kontext & Controls für den nächsten Take.</div></div></section>`;
       const textArea = tele.querySelector('[data-sco-teleprompter-text]');
       const content = tele.querySelector('[data-sco-tp-content]');
       const view = tele.querySelector('[data-sco-tp-view]');
@@ -664,6 +838,8 @@
       };
       [textArea,speed,font,line,mirror,focus].forEach((el)=>el.addEventListener('input', sync));
       sync();
+      applySplitView(isSplitView());
+      tele.querySelector('[data-sco-split-toggle]')?.addEventListener('click', () => setSplitView(!isSplitView()));
       const step = (ts) => {
         if (!state.teleprompter.running) return;
         if (!state.teleprompter.lastTs) state.teleprompter.lastTs = ts;
@@ -706,6 +882,8 @@
     bindAdminTestPlan();
     bindCoachReset();
     bindToolTabs();
+    bindQuickActions();
+    bindCommandPalette();
     await loadDashboard();
     updateHeader();
     renderToday();
