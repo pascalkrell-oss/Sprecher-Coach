@@ -26,13 +26,16 @@
       <?php endif; ?>
     </section>
   <?php else : ?>
-    <section class="sco-card sco-status-inline" data-sco-status-pills>
+    <header class="sco-topbar sco-card" data-sco-status-pills>
+      <div>
+        <h1><?php echo esc_html__('Sprecher Coach OS', 'sprecher-coach-os'); ?></h1>
+      </div>
       <div class="sco-pill-row">
         <span class="sco-pill" data-sco-streak><?php echo esc_html__('Trainingsserie 0', 'sprecher-coach-os'); ?></span>
         <span class="sco-pill sco-pill-neutral" data-sco-level><?php echo esc_html__('Level 1', 'sprecher-coach-os'); ?></span>
         <span class="sco-pill sco-pill-neutral" data-sco-weekly><?php echo esc_html__('Wochenziel 0/5', 'sprecher-coach-os'); ?></span>
       </div>
-    </section>
+    </header>
 
     <div class="sco-shell">
       <aside class="sco-nav sco-card">
