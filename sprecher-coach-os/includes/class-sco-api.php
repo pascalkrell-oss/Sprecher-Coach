@@ -22,6 +22,8 @@ class SCO_API {
         register_rest_route('sco/v1', '/library', array_merge(['methods' => 'GET', 'callback' => [$this, 'library']], $auth));
         register_rest_route('sco/v1', '/library/open', array_merge(['methods' => 'POST', 'callback' => [$this, 'library_open']], $auth));
         register_rest_route('sco/v1', '/library/add', array_merge(['methods' => 'POST', 'callback' => [$this, 'library_add']], $auth));
+        register_rest_route('sco/v1', '/notes', array_merge(['methods' => 'GET', 'callback' => [$this, 'get_notes']], $auth));
+        register_rest_route('sco/v1', '/notes', array_merge(['methods' => 'POST', 'callback' => [$this, 'save_note']], $auth));
         register_rest_route('sco/v1', '/reset', array_merge(['methods' => 'POST', 'callback' => [$this, 'reset_coach']], $auth));
         register_rest_route('sco/v1', '/app-html', [
             'methods' => 'GET',
@@ -95,10 +97,55 @@ class SCO_API {
                 'last_completed_date' => $progress['last_completed_date'],
             ],
             'premium' => $premium,
+            'notes_recent' => $this->get_recent_notes($user_id, 7),
+            'week_review' => $this->build_week_review($user_id),
+            'adaptive_plan' => $this->build_adaptive_plan($user_id),
             'teaser' => SCO_Utils::copy('premium_tooltips', 'locked_skill'),
             'cta' => SCO_Utils::copy('cta'),
             'premium_tooltips' => SCO_Utils::copy('premium_tooltips'),
         ]);
+    }
+
+    public function get_notes() {
+        $user_id = get_current_user_id();
+        return rest_ensure_response(['items' => $this->get_recent_notes($user_id, 7)]);
+    }
+
+    public function save_note(WP_REST_Request $request) {
+        $user_id = get_current_user_id();
+        $drill_id = (int) $request->get_param('drill_id');
+        $today = sanitize_text_field((string) $request->get_param('date')) ?: SCO_Utils::today();
+        $better = sanitize_textarea_field((string) $request->get_param('better_today'));
+        $focus = sanitize_textarea_field((string) $request->get_param('focus_tomorrow'));
+
+        if ($better === '' && $focus === '') {
+            return new WP_REST_Response(['message' => __('Bitte mindestens ein Notizfeld ausfüllen.', 'sprecher-coach-os')], 400);
+        }
+
+        $all_notes = get_user_meta($user_id, 'sco_user_notes', true);
+        if (!is_array($all_notes)) {
+            $all_notes = [];
+        }
+
+        $note_key = $today . ':' . $drill_id;
+        $all_notes[$note_key] = [
+            'date' => $today,
+            'drill_id' => $drill_id,
+            'better_today' => $better,
+            'focus_tomorrow' => $focus,
+            'updated_at' => current_time('mysql'),
+        ];
+
+        if (count($all_notes) > 60) {
+            uasort($all_notes, static function ($a, $b) {
+                return strcmp((string) ($b['updated_at'] ?? ''), (string) ($a['updated_at'] ?? ''));
+            });
+            $all_notes = array_slice($all_notes, 0, 60, true);
+        }
+
+        update_user_meta($user_id, 'sco_user_notes', $all_notes);
+
+        return rest_ensure_response(['success' => true, 'items' => $this->get_recent_notes($user_id, 7)]);
     }
 
     private function ensure_user_progress($user_id) {
@@ -660,6 +707,7 @@ class SCO_API {
             $wpdb->delete(SCO_DB::table('user_mission_progress'), ['user_id' => $user_id], ['%d']);
             $wpdb->delete(SCO_DB::table('user_mission_steps'), ['user_id' => $user_id], ['%d']);
             $wpdb->delete(SCO_DB::table('user_library_opens'), ['user_id' => $user_id], ['%d']);
+            delete_user_meta($user_id, 'sco_user_notes');
 
             $wpdb->query('COMMIT');
         } catch (Throwable $error) {
@@ -697,5 +745,113 @@ class SCO_API {
         }
 
         return rest_ensure_response(['success' => true, 'plan' => $saved]);
+    }
+
+    private function get_recent_notes($user_id, $limit = 7) {
+        $all_notes = get_user_meta($user_id, 'sco_user_notes', true);
+        if (!is_array($all_notes) || empty($all_notes)) {
+            return [];
+        }
+
+        $items = array_values($all_notes);
+        usort($items, static function ($a, $b) {
+            return strcmp((string) ($b['date'] ?? ''), (string) ($a['date'] ?? ''));
+        });
+
+        return array_slice($items, 0, max(1, (int) $limit));
+    }
+
+    private function build_week_review($user_id) {
+        global $wpdb;
+
+        $today = SCO_Utils::today();
+        $monday = SCO_Utils::week_monday($today);
+        $rows = $wpdb->get_results($wpdb->prepare('SELECT drill_id, xp, score, answers_json, completion_date FROM ' . SCO_DB::table('user_completions') . ' WHERE user_id=%d AND completion_date >= %s ORDER BY completion_date DESC', $user_id, $monday), ARRAY_A);
+
+        $insights = [];
+        $low_checks = 0;
+        $check_count = 0;
+        $score_sum = 0;
+        foreach ($rows as $row) {
+            $score_sum += (int) $row['score'];
+            $answers = json_decode((string) $row['answers_json'], true);
+            if (!is_array($answers)) {
+                continue;
+            }
+            foreach ($answers as $answer) {
+                if (!isset($answer['value'])) {
+                    continue;
+                }
+                $check_count++;
+                if ((int) $answer['value'] <= 2) {
+                    $low_checks++;
+                }
+            }
+        }
+
+        if ($check_count > 0 && ($low_checks / $check_count) > 0.35) {
+            $insights[] = 'Mehrere Self-Checks waren niedrig – plane morgen ein kurzes Warmup vor dem Drill.';
+        }
+        if (count($rows) >= 3) {
+            $insights[] = 'Konstanz stark: Du hast diese Woche bereits mindestens 3 Trainings abgeschlossen.';
+        }
+        if (!empty($rows) && ($score_sum / count($rows)) >= 80) {
+            $insights[] = 'Qualität hoch: Dein durchschnittlicher Drill-Score liegt über 80%.';
+        }
+        while (count($insights) < 3) {
+            $insights[] = 'Halte den Rhythmus: Ein täglicher 6-Minuten-Drill stabilisiert Stimme und Timing.';
+        }
+
+        $top_skill = $wpdb->get_row($wpdb->prepare('SELECT usp.skill_key, usp.xp FROM ' . SCO_DB::table('user_skill_progress') . ' usp WHERE usp.user_id=%d ORDER BY usp.xp DESC LIMIT 1', $user_id), ARRAY_A);
+        $progress = $this->ensure_user_progress($user_id);
+
+        return [
+            'trainings_this_week' => count($rows),
+            'streak_max' => (int) ($progress['streak'] ?? 0),
+            'top_skill' => $top_skill ? sanitize_key((string) $top_skill['skill_key']) : 'werbung',
+            'insights' => array_slice($insights, 0, 3),
+        ];
+    }
+
+    private function build_adaptive_plan($user_id) {
+        global $wpdb;
+
+        $rows = $wpdb->get_results($wpdb->prepare('SELECT d.title, d.skill_key, d.category_key, c.answers_json FROM ' . SCO_DB::table('user_completions') . ' c LEFT JOIN ' . SCO_DB::table('drills') . ' d ON c.drill_id = d.id WHERE c.user_id=%d ORDER BY c.id DESC LIMIT 7', $user_id), ARRAY_A);
+        $pacing_low = 0;
+        $emphasis_low = 0;
+        foreach ($rows as $row) {
+            $haystack = strtolower(wp_json_encode($row));
+            $answers = json_decode((string) $row['answers_json'], true);
+            $low_values = 0;
+            if (is_array($answers)) {
+                foreach ($answers as $answer) {
+                    if ((int) ($answer['value'] ?? 0) <= 2) {
+                        $low_values++;
+                    }
+                }
+            }
+            if (strpos($haystack, 'pacing') !== false || strpos($haystack, 'tempo') !== false) {
+                $pacing_low += $low_values > 0 ? 1 : 0;
+            }
+            if (strpos($haystack, 'beton') !== false || strpos($haystack, 'emphasis') !== false) {
+                $emphasis_low += $low_values > 0 ? 1 : 0;
+            }
+        }
+
+        $focus = [];
+        if ($pacing_low >= 2) {
+            $focus[] = 'Pacing-Drills priorisieren (gleichmäßiges Tempo, klare Pausen).';
+        }
+        if ($emphasis_low >= 2) {
+            $focus[] = 'Betonungs-Drills priorisieren (Kernaussagen markieren und variieren).';
+        }
+        if (empty($focus)) {
+            $focus[] = 'Mix aus Warmup + Skriptdrills für konstante Fortschritte.';
+        }
+
+        return [
+            'focus' => $focus,
+            'premium_hint' => 'Premium erweitert den Plan um zusätzliche personalisierte Slots.',
+        ];
     }
 }

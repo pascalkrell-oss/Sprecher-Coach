@@ -41,6 +41,14 @@
       </div>
     </header>
 
+    <section class="sco-card sco-quick-actions" aria-label="Quick Actions">
+      <button type="button" class="sco-btn" data-sco-quick-action="daily"><?php echo esc_html__('Tagesdrill', 'sprecher-coach-os'); ?></button>
+      <button type="button" class="sco-btn" data-sco-quick-action="teleprompter"><?php echo esc_html__('Teleprompter', 'sprecher-coach-os'); ?></button>
+      <button type="button" class="sco-btn" data-sco-quick-action="demo"><?php echo esc_html__('Demo-Text', 'sprecher-coach-os'); ?></button>
+      <button type="button" class="sco-btn" data-sco-quick-action="mission"><?php echo esc_html__('Mission', 'sprecher-coach-os'); ?></button>
+      <button type="button" class="sco-btn" data-sco-command-open><i class="fa-solid fa-terminal" aria-hidden="true"></i><?php echo esc_html__('Cmd + K', 'sprecher-coach-os'); ?></button>
+    </section>
+
     <div class="sco-shell">
       <aside class="sco-nav sco-card">
         <div class="sco-card-header">
@@ -195,5 +203,13 @@
       <div class="sco-drawer__body" data-sco-drawer-body></div>
       <div class="sco-drawer__foot" data-sco-drawer-foot></div>
     </aside>
+
+    <div class="sco-command-palette" data-sco-command-palette hidden aria-hidden="true" role="dialog" aria-modal="true" aria-label="Command Palette">
+      <div class="sco-command-palette__surface">
+        <label class="screen-reader-text" for="sco-command-input"><?php echo esc_html__('Befehl suchen', 'sprecher-coach-os'); ?></label>
+        <input id="sco-command-input" class="sco-input" type="search" data-sco-command-input placeholder="Befehl eingeben …" autocomplete="off">
+        <ul class="sco-command-palette__list" data-sco-command-results role="listbox"></ul>
+      </div>
+    </div>
   <?php endif; ?>
 </div>
