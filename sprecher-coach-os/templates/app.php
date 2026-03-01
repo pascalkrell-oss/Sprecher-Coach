@@ -1,4 +1,18 @@
 <?php if (!defined('ABSPATH')) { exit; } ?>
+<?php if (is_user_logged_in() && current_user_can('manage_options')) : ?>
+  <?php $test_plan = sanitize_key((string) get_user_meta(get_current_user_id(), 'sco_test_plan', true)); ?>
+  <section class="sco-admin-testmode sco-card" data-sco-admin-test-plan data-current-plan="<?php echo esc_attr($test_plan ?: 'off'); ?>"> 
+    <div>
+      <strong><?php echo esc_html__('Test: Zugriff simulieren', 'sprecher-coach-os'); ?></strong>
+      <p class="sco-muted"><?php echo esc_html__('Nur Testmodus (nur für dich)', 'sprecher-coach-os'); ?></p>
+    </div>
+    <div class="sco-segmented" role="group" aria-label="Test Plan">
+      <button type="button" class="sco-btn <?php echo $test_plan === 'free' ? 'is-active' : ''; ?>" data-plan="free">Test: FREE</button>
+      <button type="button" class="sco-btn <?php echo $test_plan === 'premium' ? 'is-active' : ''; ?>" data-plan="premium">Test: PREMIUM</button>
+      <button type="button" class="sco-btn <?php echo $test_plan === '' ? 'is-active' : ''; ?>" data-plan="off">Aus</button>
+    </div>
+  </section>
+<?php endif; ?>
 <div id="sco-root" class="sco-app" data-upgrade-url="<?php echo esc_url(sco_checkout_url()); ?>">
   <?php if (!is_user_logged_in()) : ?>
     <section class="sco-login-required sco-card" aria-live="polite">
@@ -21,7 +35,7 @@
         <p class="sco-muted"><?php echo esc_html(SCO_Utils::copy('cta', 'dashboard_nudge')); ?></p>
       </div>
       <div class="sco-pill-row" data-sco-status-pills>
-        <span class="sco-pill" data-sco-streak><?php echo esc_html__('Streak 0', 'sprecher-coach-os'); ?></span>
+        <span class="sco-pill" data-sco-streak><?php echo esc_html__('Trainingsserie 0', 'sprecher-coach-os'); ?></span>
         <span class="sco-pill sco-pill-neutral" data-sco-level><?php echo esc_html__('Level 1', 'sprecher-coach-os'); ?></span>
         <span class="sco-pill sco-pill-neutral" data-sco-weekly><?php echo esc_html__('Wochenziel 0/5', 'sprecher-coach-os'); ?></span>
       </div>
@@ -39,6 +53,7 @@
           <button type="button" data-tab="missions"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i><span><?php echo esc_html__('Missionen', 'sprecher-coach-os'); ?></span></button>
           <button type="button" data-tab="library"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span><?php echo esc_html__('Bibliothek', 'sprecher-coach-os'); ?></span></button>
           <button type="button" data-tab="progress"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span><?php echo esc_html__('Fortschritt', 'sprecher-coach-os'); ?></span></button>
+          <button type="button" data-tab="tools"><i class="fa-solid fa-toolbox" aria-hidden="true"></i><span><?php echo esc_html__('Tools', 'sprecher-coach-os'); ?></span></button>
         </nav>
       </aside>
 
@@ -123,6 +138,16 @@
 
         <section class="sco-tab-panel" data-panel="progress">
           <article class="sco-card" data-sco-progress-panel></article>
+          <article class="sco-card">
+            <div class="sco-card-header"><h3><?php echo esc_html__('Coach zurücksetzen', 'sprecher-coach-os'); ?></h3></div>
+            <p class="sco-muted"><?php echo esc_html__('Setzt deinen Fortschritt (XP, Missionen, Wochenziel, Trainingshistorie) zurück.', 'sprecher-coach-os'); ?></p>
+            <div class="sco-actions"><button type="button" class="sco-btn sco-btn-danger" data-sco-reset-coach><?php echo esc_html__('Coach zurücksetzen', 'sprecher-coach-os'); ?></button></div>
+          </article>
+        </section>
+
+        <section class="sco-tab-panel" data-panel="tools">
+          <article class="sco-card" data-sco-tool-generator></article>
+          <article class="sco-card" data-sco-tool-teleprompter></article>
         </section>
       </main>
 
@@ -144,6 +169,7 @@
       <button type="button" data-tab="skilltree"><?php echo esc_html__('Skills', 'sprecher-coach-os'); ?></button>
       <button type="button" data-tab="library"><?php echo esc_html__('Library', 'sprecher-coach-os'); ?></button>
       <button type="button" data-tab="progress"><?php echo esc_html__('Stats', 'sprecher-coach-os'); ?></button>
+      <button type="button" data-tab="tools"><?php echo esc_html__('Tools', 'sprecher-coach-os'); ?></button>
     </nav>
 
     <div class="sco-overlay" hidden></div>

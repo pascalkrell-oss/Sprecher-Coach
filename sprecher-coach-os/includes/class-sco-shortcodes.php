@@ -34,6 +34,7 @@ class SCO_Shortcodes {
             'myAccountUrl' => home_url('/my-account/'),
             'hasRegistration' => (bool) get_option('users_can_register'),
             'labelMaps' => SCO_Utils::label_maps(),
+            'userId' => get_current_user_id(),
         ]);
     }
 

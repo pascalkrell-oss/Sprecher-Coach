@@ -70,7 +70,7 @@ class SCO_Utils {
                 'upgrade_primary' => 'Premium freischalten',
                 'upgrade_secondary' => 'Mehr Infos',
                 'dashboard_nudge' => 'Du bist dran: Heute 6 Minuten Training – und ein Level näher.',
-                'streak_save' => 'Streak sichern: 1 Drill – fertig.',
+                'streak_save' => 'Trainingsserie halten: 1 Drill – fertig.',
                 'level_up' => 'Noch {n} Drills bis Level {level}.',
             ],
             'onboarding' => [
