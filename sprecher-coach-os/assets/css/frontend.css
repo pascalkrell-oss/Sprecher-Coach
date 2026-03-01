@@ -120,7 +120,7 @@ body.sco-drawer-open { overflow: hidden; }
 .sco-drawer__head { padding: 18px 22px; border-bottom: 1px solid var(--sco-border); display: flex; justify-content: space-between; align-items: center; gap: 14px; position: sticky; top: 0; background: #fff; }
 .sco-drawer__title { display: flex; align-items: center; gap: 10px; }
 .sco-drawer__icon { width: 30px; height: 30px; border-radius: 50%; background: rgba(26, 147, 238, 0.12); color: var(--sco-primary); display: inline-flex; align-items: center; justify-content: center; }
-.sco-drawer__body { padding: 20px 24px; overflow: auto; }
+.sco-drawer__body { padding: 32px 24px; overflow: auto; }
 .sco-drawer__foot { padding: 16px 24px 20px; border-top: 1px solid var(--sco-border); display: none; gap: 10px; background: #fff; }
 .sco-drawer__foot.has-content { display: flex; flex-wrap: wrap; }
 .sco-icon-btn { width: 36px; height: 36px; border-radius: 12px; border: 1px solid var(--sco-border); background: #fff; color: var(--sco-muted); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: var(--sco-transition); }
@@ -157,11 +157,102 @@ body.sco-drawer-open { overflow: hidden; }
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .sco-mission-task-list {
-  margin: 8px 0 12px 18px;
+  list-style: none;
+  margin: 8px 0 0;
+  padding-left: 0;
+}
+
+.sco-mission-task-list li {
+  position: relative;
+  padding-left: 18px;
+  margin-bottom: 8px;
+}
+
+.sco-mission-task-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--brand-color, #1273EB);
+}
+
+/* Mission drawer: modern spacing + hierarchy between day blocks. */
+.sco-mission-step-card {
+  border-radius: 18px;
+  border: 1px solid var(--sco-border);
+  padding: 24px;
+  margin-bottom: 48px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.sco-mission-step-card:last-child {
+  margin-bottom: 0;
+}
+
+.sco-mission-step-day {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.sco-mission-time-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(18, 115, 235, 0.09);
+  color: #35527a;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.sco-mission-step-title,
+.sco-mission-task-label {
+  margin: 0 0 8px;
+}
+
+/* Mission drawer: action area fix (prevent overlapping elements). */
+.sco-mission-step-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.sco-actions--stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sco-mission-step-hint {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--sco-surface-2);
+}
+
+/* Brand CTA for "Zum Daily Drill". */
+.sco-btn-brand {
+  color: #fff;
+  background: var(--brand-color, #1273EB);
+  border-color: var(--brand-color, #1273EB);
+  border-radius: 9999px;
+  box-shadow: 0 2px 8px rgba(18, 115, 235, 0.22);
+}
+
+.sco-btn-brand:hover,
+.sco-btn-brand:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(18, 115, 235, 0.2);
 }
 
 .sco-mission-script {
